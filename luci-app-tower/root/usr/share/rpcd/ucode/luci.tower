@@ -1,0 +1,129 @@
+#!/usr/bin/ucode
+/*
+ * SPDX-License-Identifier: MIT
+ *
+ * luci-app-tower rpcd backend: drives the tower binary through subprocess
+ * calls so the JS frontend never touches the filesystem directly.
+ */
+
+'use strict';
+
+import { popen, unlink, writefile } from 'fs';
+import { cursor } from 'uci';
+
+function data_dir() {
+	const uci = cursor();
+	return uci.get('tower', 'main', 'data_dir') || '/etc/tower';
+}
+
+function shellquote(s) {
+	return `'${replace(s, "'", "'\\''")}'`;
+}
+
+function run(args) {
+	const cmd = `/usr/bin/tower -data ${shellquote(data_dir())} ${args}`;
+	const fd = popen(cmd, 'r');
+	if (!fd)
+		return { ok: false, error: 'failed to execute tower' };
+	const out = fd.read('all');
+	const code = fd.close();
+	if (code !== 0)
+		return { ok: false, error: `tower exited with ${code}: ${trim(out)}` };
+	return { ok: true, output: out };
+}
+
+function runJSON(args) {
+	const r = run(args);
+	if (!r.ok)
+		return { error: r.error };
+	try {
+		return { data: json(r.output) };
+	} catch (e) {
+		return { error: 'bad tower output' };
+	}
+}
+
+function runText(args) {
+	const r = run(args);
+	if (!r.ok)
+		return { error: r.error };
+	return { content: r.output };
+}
+
+const methods = {
+	subscriptions: {
+		args: {},
+		call: function() {
+			return runJSON('subscriptions');
+		}
+	},
+	nodes: {
+		args: {},
+		call: function() {
+			return runJSON('nodes');
+		}
+	},
+	add_subscription: {
+		args: { name: 'name', url: 'url', user_agent: 'user_agent' },
+		call: function(req) {
+			const name = req.args?.name ?? '';
+			const url = req.args?.url ?? '';
+			if (url === '')
+				return { error: 'url is required' };
+			let cmd = `add --name ${shellquote(name)} --url ${shellquote(url)}`;
+			if (req.args?.user_agent)
+				cmd += ` --user-agent ${shellquote(req.args.user_agent)}`;
+			return runJSON(cmd);
+		}
+	},
+	remove_subscription: {
+		args: { id: 'id' },
+		call: function(req) {
+			const id = req.args?.id ?? '';
+			if (id === '')
+				return { error: 'id is required' };
+			const r = run(`remove --id ${shellquote(id)}`);
+			return r.ok ? { success: true } : { error: r.error };
+		}
+	},
+	import_nodes: {
+		args: { content: 'content' },
+		call: function(req) {
+			const content = req.args?.content ?? '';
+			if (content === '')
+				return { error: 'content is required' };
+			const tmp = '/tmp/tower-import.txt';
+			writefile(tmp, content);
+			const r = run(`import --file ${shellquote(tmp)}`);
+			unlink(tmp);
+			if (!r.ok)
+				return { error: r.error };
+			return { imported: int(trim(r.output)) };
+		}
+	},
+	refresh: {
+		args: { id: 'id' },
+		call: function(req) {
+			let cmd = 'refresh';
+			if (req.args?.id)
+				cmd += ` --id ${shellquote(req.args.id)}`;
+			return runJSON(cmd);
+		}
+	},
+	export: {
+		args: { target: 'target', protocols: 'protocols', nodes: 'nodes' },
+		call: function(req) {
+			const target = req.args?.target ?? '';
+			if (target === '')
+				return { error: 'target is required' };
+			let cmd = `export --target ${shellquote(target)}`;
+			if (req.args?.protocols)
+				cmd += ` --protocols ${shellquote(req.args.protocols)}`;
+			if (req.args?.nodes)
+				cmd += ` --nodes ${shellquote(req.args.nodes)}`;
+			return runText(cmd);
+		}
+	}
+};
+
+return { 'luci.tower': methods };

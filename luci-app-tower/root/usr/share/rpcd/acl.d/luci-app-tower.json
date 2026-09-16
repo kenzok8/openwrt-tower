@@ -1,0 +1,17 @@
+{
+	"luci-app-tower": {
+		"description": "Grant access for luci-app-tower",
+		"read": {
+			"ubus": {
+				"luci.tower": [ "*" ]
+			},
+			"uci": [ "tower" ]
+		},
+		"write": {
+			"ubus": {
+				"luci.tower": [ "*" ]
+			},
+			"uci": [ "tower" ]
+		}
+	}
+}
