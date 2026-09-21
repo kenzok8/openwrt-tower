@@ -119,6 +119,16 @@ func runCLI(sub string, args []string, svc *service.Service) error {
 		}
 		fmt.Print(out)
 		return nil
+	case "links":
+		fs := flag.NewFlagSet("links", flag.ExitOnError)
+		protocols := fs.String("protocols", "", "comma-separated enabled protocols (empty = all)")
+		nodes := fs.String("nodes", "", "comma-separated node ids (empty = all)")
+		_ = fs.Parse(args)
+		results, err := svc.Links(service.ParseProtocols(*protocols), service.ParseNodeIDs(*nodes))
+		if err != nil {
+			return err
+		}
+		return printJSON(results)
 	default:
 		return fmt.Errorf("unknown subcommand %q", sub)
 	}

@@ -114,6 +114,16 @@ return view.extend({
 				]),
 				E('div', { 'class': 'tower-card-actions' }, [
 					E('button', {
+						'class': 'btn cbi-button',
+						'click': ui.createHandlerFn(this, function() {
+							return tower.copyText(sub.url).then(function() {
+								ui.addNotification(null, E('p', [ _('订阅链接已复制') ]), 'info');
+							}).catch(function() {
+								ui.addNotification(null, E('p', [ _('复制失败') ]), 'error');
+							});
+						})
+					}, [ _('复制链接') ]),
+					E('button', {
 						'class': 'btn cbi-button cbi-button-apply',
 						'click': ui.createHandlerFn(this, function() {
 							return tower.rpcRefresh(sub.id).then(function(res) {

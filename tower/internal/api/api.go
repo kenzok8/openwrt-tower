@@ -28,6 +28,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/subscriptions/refresh", s.handleRefresh)
 	mux.HandleFunc("/api/nodes", s.handleNodes)
 	mux.HandleFunc("/api/export", s.handleExport)
+	mux.HandleFunc("/api/links", s.handleLinks)
 	return mux
 }
 
@@ -127,6 +128,17 @@ func (s *Server) handleExport(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	_, _ = w.Write([]byte(out))
+}
+
+func (s *Server) handleLinks(w http.ResponseWriter, r *http.Request) {
+	protocols := service.ParseProtocols(r.URL.Query().Get("protocols"))
+	nodeIDs := service.ParseNodeIDs(r.URL.Query().Get("nodes"))
+	links, err := s.svc.Links(protocols, nodeIDs)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, links)
 }
 
 func parseTarget(name string) model.ClientTarget {

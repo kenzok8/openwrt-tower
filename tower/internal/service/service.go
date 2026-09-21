@@ -172,25 +172,44 @@ func (s *Service) Refresh(id string) ([]RefreshResult, error) {
 // the set of enabled proxy kinds (nil = all); nodeIDs limits output to specific
 // nodes (nil = all).
 func (s *Service) Export(target model.ClientTarget, protocols []model.ProxyKind, nodeIDs []string) (string, error) {
-	state, err := s.Store.Load()
+	nodes, err := s.selectedNodes(nodeIDs)
 	if err != nil {
 		return "", err
 	}
-	nodes := state.Nodes
-	if len(nodeIDs) > 0 {
-		want := make(map[string]bool, len(nodeIDs))
-		for _, id := range nodeIDs {
-			want[id] = true
-		}
-		filtered := make([]model.ProxyNode, 0, len(nodes))
-		for _, n := range nodes {
-			if want[n.ID] {
-				filtered = append(filtered, n)
-			}
-		}
-		nodes = filtered
-	}
 	return generator.Generate(generator.Options{Target: target, Nodes: nodes, Protocols: protocols})
+}
+
+// Links converts nodes to shareable subscription links (one per node).
+// protocols and nodeIDs filter the node set exactly like Export.
+func (s *Service) Links(protocols []model.ProxyKind, nodeIDs []string) ([]generator.LinkResult, error) {
+	nodes, err := s.selectedNodes(nodeIDs)
+	if err != nil {
+		return nil, err
+	}
+	nodes = generator.FilterNodes(nodes, protocols)
+	return generator.Links(nodes), nil
+}
+
+// selectedNodes loads the stored nodes, optionally narrowed to the given ids.
+func (s *Service) selectedNodes(nodeIDs []string) ([]model.ProxyNode, error) {
+	state, err := s.Store.Load()
+	if err != nil {
+		return nil, err
+	}
+	if len(nodeIDs) == 0 {
+		return state.Nodes, nil
+	}
+	want := make(map[string]bool, len(nodeIDs))
+	for _, id := range nodeIDs {
+		want[id] = true
+	}
+	filtered := make([]model.ProxyNode, 0, len(state.Nodes))
+	for _, n := range state.Nodes {
+		if want[n.ID] {
+			filtered = append(filtered, n)
+		}
+	}
+	return filtered, nil
 }
 
 // ParseNodeIDs splits a comma-separated node id list.

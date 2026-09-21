@@ -123,6 +123,17 @@ const methods = {
 				cmd += ` --nodes ${shellquote(req.args.nodes)}`;
 			return runText(cmd);
 		}
+	},
+	links: {
+		args: { protocols: 'protocols', nodes: 'nodes' },
+		call: function(req) {
+			let cmd = 'links';
+			if (req.args?.protocols)
+				cmd += ` --protocols ${shellquote(req.args.protocols)}`;
+			if (req.args?.nodes)
+				cmd += ` --nodes ${shellquote(req.args.nodes)}`;
+			return runJSON(cmd);
+		}
 	}
 };
 

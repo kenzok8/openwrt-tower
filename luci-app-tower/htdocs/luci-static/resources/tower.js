@@ -8,6 +8,7 @@ const callAddSub = rpc.declare({ object: 'luci.tower', method: 'add_subscription
 const callRemoveSub = rpc.declare({ object: 'luci.tower', method: 'remove_subscription', params: ['id'] });
 const callRefresh = rpc.declare({ object: 'luci.tower', method: 'refresh', params: ['id'] });
 const callExport = rpc.declare({ object: 'luci.tower', method: 'export', params: ['target', 'protocols', 'nodes'] });
+const callLinks = rpc.declare({ object: 'luci.tower', method: 'links', params: ['protocols', 'nodes'] });
 const callImport = rpc.declare({ object: 'luci.tower', method: 'import_nodes', params: ['content'] });
 
 /* Client targets currently implemented. Phase 2 adds Loon, QuanX, Egern, V2Box. */
@@ -54,7 +55,43 @@ const protocols = [
 	{ id: 'http', name: 'HTTP' }
 ];
 
+function copyText(text) {
+	if (navigator.clipboard && navigator.clipboard.writeText)
+		return navigator.clipboard.writeText(text);
+
+	return new Promise(function(resolve, reject) {
+		var ta = document.createElement('textarea');
+		ta.value = text;
+		ta.style.position = 'fixed';
+		ta.style.opacity = '0';
+		document.body.appendChild(ta);
+		ta.select();
+		try {
+			document.execCommand('copy');
+			resolve();
+		} catch (e) {
+			reject(e);
+		} finally {
+			document.body.removeChild(ta);
+		}
+	});
+}
+
+function downloadFile(filename, content) {
+	var blob = new Blob([ content ], { type: 'text/plain;charset=utf-8' });
+	var url = URL.createObjectURL(blob);
+	var a = document.createElement('a');
+	a.href = url;
+	a.download = filename;
+	document.body.appendChild(a);
+	a.click();
+	document.body.removeChild(a);
+	setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
+}
+
 return baseclass.extend({
+	copyText: copyText,
+	downloadFile: downloadFile,
 	rpcListSubs: function() {
 		return L.resolveDefault(callListSubs(), { data: [] }).then(function(r) { return r.data; });
 	},
@@ -72,6 +109,9 @@ return baseclass.extend({
 	},
 	rpcExport: function(target, protocols, nodes) {
 		return L.resolveDefault(callExport(target, protocols, nodes), { content: '' }).then(function(r) { return r.content; });
+	},
+	rpcLinks: function(protocols, nodes) {
+		return L.resolveDefault(callLinks(protocols, nodes), { data: [] }).then(function(r) { return r.data; });
 	},
 	rpcImport: function(content) {
 		return L.resolveDefault(callImport(content), { imported: 0 });
