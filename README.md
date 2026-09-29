@@ -6,7 +6,8 @@
 
 ## 产品预览
 
-点击图片可查看大图；图片统一存放在 [kenzok8/screenshot/tower](https://github.com/kenzok8/kenzok8/tree/main/screenshot/tower)。
+<details open>
+<summary><b>Desktop Screenshots</b></summary>
 
 <table>
   <tr>
