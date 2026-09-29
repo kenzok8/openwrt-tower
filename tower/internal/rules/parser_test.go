@@ -132,8 +132,8 @@ func TestKenzok8BundledTemplateIsImportable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(scheme.Groups) != 32 || len(scheme.Rules) != 21 {
-		t.Fatalf("groups=%d rules=%d, want 32 and 21", len(scheme.Groups), len(scheme.Rules))
+	if len(scheme.Groups) != 30 || len(scheme.Rules) != 21 {
+		t.Fatalf("groups=%d rules=%d, want 30 and 21", len(scheme.Groups), len(scheme.Rules))
 	}
 	groups := make(map[string]model.RuleSchemeGroup, len(scheme.Groups))
 	for _, group := range scheme.Groups {
@@ -142,6 +142,11 @@ func TestKenzok8BundledTemplateIsImportable(t *testing.T) {
 	for _, name := range []string{"🇹🇼 台湾节点", "🇰🇷 韩国节点", "♻️ 台湾自动", "♻️ 韩国自动", "🌐 直连"} {
 		if _, ok := groups[name]; !ok {
 			t.Errorf("missing group %s", name)
+		}
+	}
+	for _, name := range []string{"🇺🇳 集合节点", "♻️ 集合自动"} {
+		if _, ok := groups[name]; ok {
+			t.Errorf("redundant group %s remains", name)
 		}
 	}
 	for _, name := range []string{"▶️ YouTube", "📔 Google", "🔮 OpenAI", "🧠 Claude", "🤖 Gemini", "🐦 Twitter", "📦 GitHub", "Ⓜ️ Microsoft", "🎵 TikTok", "📺 NETFLIX", "💳 PayPal"} {
@@ -304,8 +309,8 @@ func TestLoadBundled(t *testing.T) {
 			break
 		}
 	}
-	if kenzok8 == nil || kenzok8.Name != "kenzok8方案" || len(kenzok8.Groups) != 32 {
-		t.Fatalf("kenzok8 bundled scheme missing or incomplete: %+v", kenzok8)
+	if kenzok8 == nil || kenzok8.Name != "kenzok8方案" || len(kenzok8.Groups) != 30 {
+		t.Fatal("kenzok8 bundled scheme missing or incomplete")
 	}
 }
 

@@ -45,6 +45,12 @@ jobs:
           ref: 44f98c51d04aebd1aa79fe4f603559c1ec2085da
           path: .github/actions/gh-action-sdk
           persist-credentials: false
+      - name: Free space for the SDK image
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+            /usr/local/share/boost /opt/hostedtoolcache/CodeQL /usr/local/.ghcup
+          docker system df
+          df -h /
       - name: Build Tower packages
         id: sdk
         continue-on-error: true

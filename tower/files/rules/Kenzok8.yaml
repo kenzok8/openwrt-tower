@@ -1,9 +1,9 @@
 # Credential-free Tower rule scheme; no subscription URL or node is bundled.
 tower-summary: kenzok8个人方案，包含地区、媒体、AI 与常用服务分组
-aipr: &pr {type: select, proxies: [🚀 节点选择, ♻️ 香港自动, ♻️ 日本自动, ♻️ 美国自动, ♻️ 新加坡自动, ♻️ 台湾自动, ♻️ 韩国自动, ♻️ 集合自动, ♻️ 自动选择, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇺🇲 美国节点, 🇸🇬 新加坡节点, 🇹🇼 台湾节点, 🇰🇷 韩国节点, 🇺🇳 集合节点, 🌍 全部节点, 🌐 直连]}
+aipr: &pr {type: select, proxies: [🚀 节点选择, ♻️ 香港自动, ♻️ 日本自动, ♻️ 美国自动, ♻️ 新加坡自动, ♻️ 台湾自动, ♻️ 韩国自动, ♻️ 自动选择, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇺🇲 美国节点, 🇸🇬 新加坡节点, 🇹🇼 台湾节点, 🇰🇷 韩国节点, 🌍 全部节点, 🌐 直连]}
 
 proxy-groups:
-  - {name: 🚀 节点选择, type: select, proxies: [♻️ 香港自动, ♻️ 日本自动, ♻️ 美国自动, ♻️ 新加坡自动, ♻️ 台湾自动, ♻️ 韩国自动, ♻️ 集合自动, ♻️ 自动选择, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇺🇲 美国节点, 🇸🇬 新加坡节点, 🇹🇼 台湾节点, 🇰🇷 韩国节点, 🇺🇳 集合节点, 🌍 全部节点, 🌐 直连]}
+  - {name: 🚀 节点选择, type: select, proxies: [♻️ 香港自动, ♻️ 日本自动, ♻️ 美国自动, ♻️ 新加坡自动, ♻️ 台湾自动, ♻️ 韩国自动, ♻️ 自动选择, 🇭🇰 香港节点, 🇯🇵 日本节点, 🇺🇲 美国节点, 🇸🇬 新加坡节点, 🇹🇼 台湾节点, 🇰🇷 韩国节点, 🌍 全部节点, 🌐 直连]}
   - {name: ▶️ YouTube, icon: "https://cdn.simpleicons.org/youtube/FF0033/FF0033", <<: *pr}
   - {name: 📔 Google, icon: "https://cdn.simpleicons.org/google/4285F4/8AB4F8", <<: *pr}
   - {name: 🔮 OpenAI, icon: "https://api.iconify.design/simple-icons/openai.svg?color=%2374AA9C&width=24&height=24", <<: *pr}
@@ -24,14 +24,12 @@ proxy-groups:
   - {name: 🇸🇬 新加坡节点, type: select, include-all: true, filter: "(?i)新|sg|singapore"}
   - {name: 🇹🇼 台湾节点, type: select, include-all: true, filter: "(?i)台|tw|taiwan"}
   - {name: 🇰🇷 韩国节点, type: select, include-all: true, filter: "(?i)韩|kr|korea"}
-  - {name: 🇺🇳 集合节点, type: select, include-all: true, filter: "(?i)台|tw|taiwan|韩|kr|korea"}
   - {name: ♻️ 香港自动, type: url-test, include-all: true, tolerance: 20, interval: 120, filter: "(?=.*(港|HK|(?i)Hong))^((?!(台|日|韩|新|深|美)).)*$"}
   - {name: ♻️ 日本自动, type: url-test, include-all: true, tolerance: 20, interval: 120, filter: "(?=.*(日|JP|(?i)Japan))^((?!(港|台|韩|新|美)).)*$"}
   - {name: ♻️ 美国自动, type: url-test, include-all: true, tolerance: 20, interval: 120, filter: "(?=.*(美|US|(?i)States|America))^((?!(港|台|日|韩|新)).)*$"}
   - {name: ♻️ 新加坡自动, type: url-test, include-all: true, tolerance: 20, interval: 120, filter: "(?=.*(新|SG|(?i)Singapore))^((?!(港|台|日|韩|美)).)*$"}
   - {name: ♻️ 台湾自动, type: url-test, include-all: true, tolerance: 20, interval: 120, filter: "(?i)台|tw|taiwan"}
   - {name: ♻️ 韩国自动, type: url-test, include-all: true, tolerance: 20, interval: 120, filter: "(?i)韩|kr|korea"}
-  - {name: ♻️ 集合自动, type: url-test, include-all: true, tolerance: 20, interval: 120, filter: "(?i)台|tw|taiwan|韩|kr|korea"}
   - {name: ♻️ 自动选择, type: url-test, include-all: true, tolerance: 20, interval: 300}
   - {name: 🌍 全部节点, type: select, include-all: true}
   - {name: 🌐 直连, type: select, proxies: [DIRECT]}

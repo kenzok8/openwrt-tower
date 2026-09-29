@@ -46,7 +46,7 @@ const clients = [
 
 const openwrtClients = [
 	{ id: 'openclash', name: 'OpenClash', icon: 'OpenClash.png', detail: 'Mihomo YAML' },
-	{ id: 'nikki', name: 'Nikki', icon: 'ClientClash.png', detail: 'Mihomo YAML' },
+	{ id: 'nikki', name: 'Nikki', icon: 'Nikki.png', detail: 'Mihomo YAML' },
 	{ id: 'clashoo-mihomo', name: 'Clashoo · Mihomo', icon: 'Clashoo.png', detail: 'Mihomo YAML' },
 	{ id: 'clashoo-singbox', name: 'Clashoo · sing-box', icon: 'Clashoo.png', detail: 'sing-box JSON', nodeOnly: true },
 	{ id: 'momo', name: 'Momo', icon: 'ClientSingBox.png', detail: 'sing-box JSON · 需适配入站', nodeOnly: true },

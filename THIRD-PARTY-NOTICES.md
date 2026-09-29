@@ -24,4 +24,4 @@ Tower 源码以 MIT 许可证发布。规则数据由各自上游项目维护，
 
 ### 客户端图标
 
-LuCI 导出页的客户端图标用于识别目标应用。通用客户端图标参考 [原版 Tower](https://github.com/pengchujin/tower) 的资源；dae 图标来自 [kenzok8/kenzok8](https://github.com/kenzok8/kenzok8/blob/main/screenshot/daede/dae-logo.png)。Momo 当前使用 sing-box 图形作格式提示，不是插件的官方标识。各应用名称和标志权利属于各自所有者。
+LuCI 导出页的客户端图标用于识别目标应用。通用客户端图标参考 [原版 Tower](https://github.com/pengchujin/tower) 的资源；Clash 图标使用 [Project Clash](https://github.com/ProjectClash/Clash-Client) 的项目头像，Nikki 暂沿用原有的通用 Clash 图形作格式提示；dae 图标来自 [kenzok8/kenzok8](https://github.com/kenzok8/kenzok8/blob/main/screenshot/daede/dae-logo.png)。Momo 当前使用 sing-box 图形作格式提示，不是插件的官方标识。各应用名称和标志权利属于各自所有者。
