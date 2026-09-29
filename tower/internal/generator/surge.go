@@ -10,11 +10,26 @@ import (
 // generateSurge renders a Surge/Shadowrocket INI configuration.
 func generateSurge(opts Options, shadowrocket bool) string {
 	var b strings.Builder
+	ipv6 := "true"
+	dnsServers := []string{"223.5.5.5", "119.29.29.29"}
+	var encryptedDNSServers []string
+	if opts.Scheme != nil && opts.Scheme.NetworkSettings != nil {
+		if opts.Scheme.NetworkSettings.IPv6Enabled != nil {
+			ipv6 = strconv.FormatBool(*opts.Scheme.NetworkSettings.IPv6Enabled)
+		}
+		if len(opts.Scheme.NetworkSettings.DNSServers) > 0 {
+			dnsServers = opts.Scheme.NetworkSettings.DNSServers
+		}
+		encryptedDNSServers = opts.Scheme.NetworkSettings.EncryptedDNSServers
+	}
 	b.WriteString(header(opts.Target))
 	b.WriteString("[General]\n")
 	b.WriteString("loglevel = notify\n")
-	b.WriteString("ipv6 = true\n")
-	b.WriteString("dns-server = 223.5.5.5, 119.29.29.29\n")
+	b.WriteString("ipv6 = " + ipv6 + "\n")
+	b.WriteString("dns-server = " + strings.Join(dnsServers, ", ") + "\n")
+	if len(encryptedDNSServers) > 0 {
+		b.WriteString("encrypted-dns-server = " + strings.Join(encryptedDNSServers, ", ") + "\n")
+	}
 	b.WriteString("skip-proxy = 127.0.0.1, localhost, *.local\n")
 	b.WriteString("test-timeout = 5\n\n")
 
@@ -26,14 +41,55 @@ func generateSurge(opts Options, shadowrocket bool) string {
 	}
 
 	b.WriteString("\n[Proxy Group]\n")
-	b.WriteString(surgeSelect(selectGroupName, append(append([]string{}, names...), directGroupName), false))
-	b.WriteString(surgeURLTest(autoGroupName, names, false))
+	if opts.Scheme != nil {
+		b.WriteString(surgeSchemeGroups(opts.Scheme, names))
+	} else {
+		b.WriteString(surgeSelect(selectGroupName, append(append([]string{}, names...), directGroupName), false))
+		b.WriteString(surgeURLTest(autoGroupName, names, false))
+	}
 
 	b.WriteString("\n[Rule]\n")
-	b.WriteString("FINAL," + confName(selectGroupName) + "\n")
+	if opts.Scheme != nil {
+		for _, r := range opts.plannedRules {
+			if line := renderRule(r, opts.Target); line != "" {
+				b.WriteString(line + "\n")
+			}
+		}
+	} else {
+		b.WriteString("FINAL," + confName(selectGroupName) + "\n")
+	}
 	return b.String()
 }
 
+// surgeSchemeGroups renders a rule scheme's strategy groups as Surge INI.
+func surgeSchemeGroups(scheme *model.RuleScheme, nodeNames []string) string {
+	var b strings.Builder
+	for _, g := range scheme.Groups {
+		members := resolveGroupMembers(g, nodeNames)
+		params := make([]string, 0, len(members)+3)
+		for _, m := range members {
+			params = append(params, confName(m))
+		}
+		if g.Kind != model.KindSelect {
+			if g.URL != "" {
+				params = append(params, "url="+confValue(g.URL))
+			}
+			if g.Interval > 0 {
+				params = append(params, "interval="+strconv.Itoa(g.Interval))
+			}
+			if g.Tolerance > 0 {
+				params = append(params, "tolerance="+strconv.Itoa(g.Tolerance))
+			}
+		}
+		if g.IconURL != "" {
+			params = append(params, "icon-url="+confValue(g.IconURL))
+		}
+		b.WriteString(confName(g.Name) + " = " + string(g.Kind) + ", " + strings.Join(params, ", ") + "\n")
+	}
+	return b.String()
+}
+
+// surgeSchemeRules renders a rule scheme's routing rules as Surge INI.
 // surgeNode serializes one node to a Surge/Shadowrocket proxy line.
 func surgeNode(node model.ProxyNode, shadowrocket bool) string {
 	name := confName(displayName(node))

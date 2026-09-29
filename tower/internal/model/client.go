@@ -22,6 +22,11 @@ const (
 	ClientFlClash      ClientTarget = "flclash"
 	ClientMihomoParty  ClientTarget = "mihomo-party"
 	ClientKaring       ClientTarget = "karing"
+	ClientOpenClash    ClientTarget = "openclash"
+	ClientNikki        ClientTarget = "nikki"
+	ClientClashoo      ClientTarget = "clashoo-mihomo"
+	ClientClashooSB    ClientTarget = "clashoo-singbox"
+	ClientMomo         ClientTarget = "momo"
 )
 
 // AllClients lists every supported client target in a stable order.
@@ -43,6 +48,21 @@ var AllClients = []ClientTarget{
 	ClientV2Box,
 	ClientHiddify,
 	ClientSingBox,
+	ClientOpenClash,
+	ClientNikki,
+	ClientClashoo,
+	ClientClashooSB,
+	ClientMomo,
+}
+
+// Supported reports whether a target is an advertised export destination.
+func (c ClientTarget) Supported() bool {
+	for _, target := range AllClients {
+		if c == target {
+			return true
+		}
+	}
+	return false
 }
 
 // Name returns the human-facing display name.
@@ -82,6 +102,16 @@ func (c ClientTarget) Name() string {
 		return "Mihomo Party"
 	case ClientKaring:
 		return "Karing"
+	case ClientOpenClash:
+		return "OpenClash"
+	case ClientNikki:
+		return "Nikki"
+	case ClientClashoo:
+		return "Clashoo (Mihomo)"
+	case ClientClashooSB:
+		return "Clashoo (sing-box)"
+	case ClientMomo:
+		return "Momo"
 	default:
 		return string(c)
 	}
@@ -108,7 +138,8 @@ func (c ClientTarget) Family() FormatFamily {
 	case ClientSurge, ClientSurgeMac:
 		return FamilySurge
 	case ClientStash, ClientClashApple, ClientClashVerge, ClientClashMac,
-		ClientFlClash, ClientMihomoParty, ClientClashMi, ClientKaring:
+		ClientFlClash, ClientMihomoParty, ClientClashMi, ClientKaring,
+		ClientOpenClash, ClientNikki, ClientClashoo:
 		return FamilyClash
 	case ClientShadowrocket:
 		return FamilyShadowrocket
@@ -116,7 +147,7 @@ func (c ClientTarget) Family() FormatFamily {
 		return FamilyLoon
 	case ClientQuanX:
 		return FamilyQuanX
-	case ClientHiddify, ClientSingBox:
+	case ClientHiddify, ClientSingBox, ClientClashooSB, ClientMomo:
 		return FamilySingBox
 	case ClientEgern:
 		return FamilyEgern

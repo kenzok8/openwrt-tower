@@ -5,13 +5,10 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=tower
-PKG_VERSION:=0.1.0
-PKG_RELEASE:=1
+PKG_VERSION:=0.2.0
+PKG_RELEASE:=2
 
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/kenzok8/luci-app-tower.git
-PKG_SOURCE_VERSION:=$(PKG_VERSION)
-PKG_MIRROR_HASH:=skip
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 
 PKG_LICENSE:=MIT
 PKG_MAINTAINER:=kenzok8 <kenzok8@gmail.com>
@@ -31,7 +28,7 @@ define Package/tower
   CATEGORY:=Network
   SUBMENU:=Web Servers/Proxies
   TITLE:=Tower subscription parser and config generator
-  URL:=https://github.com/kenzok8/luci-app-tower
+  URL:=https://github.com/kenzok8/openwrt-tower
   DEPENDS:=+ca-bundle
 endef
 
@@ -42,13 +39,25 @@ endef
 
 define Package/tower/conffiles
 /etc/config/tower
-/etc/tower/
+endef
+
+define Build/Prepare
+	$(RM) -r $(PKG_BUILD_DIR)
+	$(INSTALL_DIR) $(PKG_BUILD_DIR)
+	$(CP) $(CURDIR)/cmd $(CURDIR)/internal $(CURDIR)/files $(CURDIR)/go.mod $(CURDIR)/go.sum $(PKG_BUILD_DIR)/
 endef
 
 define Package/tower/install
 	$(call GoPackage/Package/Install/Bin,$(1))
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) ./files/tower.init $(1)/etc/init.d/tower
+	$(INSTALL_BIN) $(CURDIR)/files/tower.init $(1)/etc/init.d/tower
+	$(INSTALL_DIR) $(1)/etc/config
+	$(INSTALL_CONF) $(CURDIR)/files/tower.config $(1)/etc/config/tower
+	$(INSTALL_DIR) $(1)/etc/tower/rules
+	$(INSTALL_DATA) $(CURDIR)/files/rules/*.ini $(1)/etc/tower/rules/
+	$(INSTALL_DATA) $(CURDIR)/files/rules/*.yaml $(1)/etc/tower/rules/
+	$(INSTALL_DATA) $(CURDIR)/files/rules/*.list $(1)/etc/tower/rules/
+	$(INSTALL_DATA) $(CURDIR)/files/rules/*.txt $(1)/etc/tower/rules/
 endef
 
 $(eval $(call GoPackage,$(PKG_NAME)))

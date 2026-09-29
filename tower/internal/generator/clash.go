@@ -18,12 +18,26 @@ const (
 // minimal-but-valid structure: nodes + a select group + a url-test group.
 func generateClash(opts Options) string {
 	var b strings.Builder
+	ipv6 := true
+	dnsServers := []string{"https://223.5.5.5/dns-query", "https://doh.pub/dns-query"}
+	fallbackServers := []string{"https://1.1.1.1/dns-query", "https://dns.google/dns-query"}
+	if opts.Scheme != nil && opts.Scheme.NetworkSettings != nil {
+		if opts.Scheme.NetworkSettings.IPv6Enabled != nil {
+			ipv6 = *opts.Scheme.NetworkSettings.IPv6Enabled
+		}
+		if len(opts.Scheme.NetworkSettings.DNSServers) > 0 {
+			dnsServers = opts.Scheme.NetworkSettings.DNSServers
+		}
+		if len(opts.Scheme.NetworkSettings.FallbackDNSServers) > 0 {
+			fallbackServers = opts.Scheme.NetworkSettings.FallbackDNSServers
+		}
+	}
 	b.WriteString(header(opts.Target))
 	b.WriteString("mixed-port: 7890\n")
 	b.WriteString("allow-lan: false\n")
 	b.WriteString("mode: rule\n")
 	b.WriteString("log-level: warning\n")
-	b.WriteString("ipv6: true\n\n")
+	b.WriteString("ipv6: " + strconv.FormatBool(ipv6) + "\n\n")
 	b.WriteString("dns:\n")
 	b.WriteString("  enable: true\n")
 	b.WriteString("  enhanced-mode: fake-ip\n")
@@ -35,11 +49,13 @@ func generateClash(opts Options) string {
 	b.WriteString("    - 223.5.5.5\n")
 	b.WriteString("    - 119.29.29.29\n")
 	b.WriteString("  nameserver:\n")
-	b.WriteString("    - https://223.5.5.5/dns-query\n")
-	b.WriteString("    - https://doh.pub/dns-query\n")
+	for _, server := range dnsServers {
+		b.WriteString("    - " + yaml(server) + "\n")
+	}
 	b.WriteString("  fallback:\n")
-	b.WriteString("    - https://1.1.1.1/dns-query\n")
-	b.WriteString("    - https://dns.google/dns-query\n")
+	for _, server := range fallbackServers {
+		b.WriteString("    - " + yaml(server) + "\n")
+	}
 	b.WriteString("  fallback-filter:\n")
 	b.WriteString("    geoip: true\n")
 	b.WriteString("    geoip-code: CN\n\n")
@@ -52,14 +68,82 @@ func generateClash(opts Options) string {
 
 	names := uniquedNames(opts.Nodes)
 	b.WriteString("\nproxy-groups:\n")
-	b.WriteString(clashSelectGroup(selectGroupName, append(append([]string{}, names...), directGroupName)))
-	b.WriteString(clashURLTestGroup(autoGroupName, names))
+	if opts.Scheme != nil {
+		b.WriteString(clashSchemeGroups(opts.Scheme, names))
+	} else {
+		b.WriteString(clashSelectGroup(selectGroupName, append(append([]string{}, names...), directGroupName)))
+		b.WriteString(clashURLTestGroup(autoGroupName, names))
+	}
+	if len(opts.plannedProviders) > 0 {
+		b.WriteString("\nrule-providers:\n")
+		for _, p := range opts.plannedProviders {
+			format := p.resource.Format
+			if format == "" {
+				format = "text"
+			}
+			behavior := p.resource.Behavior
+			if behavior == "" {
+				behavior = "classical"
+			}
+			interval := p.resource.Interval
+			if interval <= 0 {
+				interval = 86400
+			}
+			ext := "yaml"
+			if format == "mrs" {
+				ext = "mrs"
+			}
+			b.WriteString("  " + yaml(p.id) + ":\n")
+			b.WriteString("    type: http\n")
+			b.WriteString("    behavior: " + behavior + "\n")
+			b.WriteString("    format: " + format + "\n")
+			b.WriteString("    path: ./rules/" + p.id + "." + ext + "\n")
+			b.WriteString("    url: " + yaml(p.resource.URL) + "\n")
+			b.WriteString("    interval: " + strconv.Itoa(interval) + "\n")
+		}
+	}
 
 	b.WriteString("\nrules:\n")
-	b.WriteString("  - MATCH," + selectGroupName + "\n")
+	if opts.Scheme != nil {
+		for _, r := range opts.plannedRules {
+			if line := renderRule(r, opts.Target); line != "" {
+				b.WriteString("  - " + line + "\n")
+			}
+		}
+	} else {
+		b.WriteString("  - MATCH," + selectGroupName + "\n")
+	}
 	return b.String()
 }
 
+// clashSchemeGroups renders a rule scheme's strategy groups as Clash YAML.
+func clashSchemeGroups(scheme *model.RuleScheme, nodeNames []string) string {
+	var b strings.Builder
+	for _, g := range scheme.Groups {
+		b.WriteString("  - name: " + yaml(g.Name) + "\n")
+		if g.IconURL != "" {
+			b.WriteString("    icon: " + yaml(g.IconURL) + "\n")
+		}
+		b.WriteString("    type: " + string(g.Kind) + "\n")
+		if g.URL != "" {
+			b.WriteString("    url: " + yaml(g.URL) + "\n")
+		}
+		if g.Interval > 0 {
+			b.WriteString("    interval: " + strconv.Itoa(g.Interval) + "\n")
+		}
+		if g.Tolerance > 0 {
+			b.WriteString("    tolerance: " + strconv.Itoa(g.Tolerance) + "\n")
+		}
+		b.WriteString("    proxies:\n")
+		members := resolveGroupMembers(g, nodeNames)
+		for _, m := range members {
+			b.WriteString("      - " + yaml(m) + "\n")
+		}
+	}
+	return b.String()
+}
+
+// clashSchemeRules renders a rule scheme's routing rules as Clash YAML.
 // clashNode serializes one proxy node to a Clash YAML list item.
 func clashNode(node model.ProxyNode, target model.ClientTarget) string {
 	var values []string

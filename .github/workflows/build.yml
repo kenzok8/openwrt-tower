@@ -1,0 +1,108 @@
+name: Build packages
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: tower/go.mod
+          cache-dependency-path: tower/go.sum
+      - name: Check Go and LuCI sources
+        run: |
+          set -euo pipefail
+          cd tower
+          go test ./...
+          go vet ./...
+          go build ./cmd/tower
+          cd ..
+          find luci-app-tower/htdocs -name '*.js' -print0 | xargs -0 -n1 node --check
+          find luci-app-tower/root/usr/share -name '*.json' -print0 | xargs -0 -n1 jq empty
+          sh -n tower/files/tower.init
+          git diff --check
+
+  package:
+    needs: check
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ["24.10", "25.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare SDK action
+        uses: actions/checkout@v4
+        with:
+          repository: kenzok8/gh-action-sdk
+          ref: 44f98c51d04aebd1aa79fe4f603559c1ec2085da
+          path: .github/actions/gh-action-sdk
+          persist-credentials: false
+      - name: Build Tower packages
+        id: sdk
+        continue-on-error: true
+        uses: ./.github/actions/gh-action-sdk
+        env:
+          CONTAINER: immortalwrt/sdk
+          ARCH: x86_64-openwrt-${{ matrix.sdk }}
+          FEEDNAME: tower
+          PACKAGES: tower luci-app-tower
+          NO_REFRESH_CHECK: true
+          IGNORE_ERRORS: false
+          INDEX: 1
+          GOLANG_REPO: https://github.com/kenzok8/golang
+          GOLANG_BRANCH: '1.25'
+      - name: Require both packages
+        id: validate
+        if: always()
+        env:
+          SDK_OUTCOME: ${{ steps.sdk.outcome }}
+        run: |
+          set -euo pipefail
+          [ "$SDK_OUTCOME" = success ] || {
+            echo "::error::SDK build failed: $SDK_OUTCOME"
+            exit 1
+          }
+          output_dir=bin/packages/x86_64/tower
+          for package in tower luci-app-tower; do
+            found=0
+            while IFS= read -r -d '' file; do
+              name=${file##*/}
+              case "$name" in
+                "$package"-*.apk|"$package"_*.apk|"$package"-*.ipk|"$package"_*.ipk)
+                  found=1
+                  break
+                  ;;
+              esac
+            done < <(find "$output_dir" -maxdepth 1 -type f \( -name '*.apk' -o -name '*.ipk' \) -print0 2>/dev/null || true)
+            [ "$found" -eq 1 ] || {
+              echo "::error::$package package is missing for SDK ${{ matrix.sdk }}"
+              exit 1
+            }
+          done
+      - name: Upload packages
+        if: steps.sdk.outcome == 'success' && steps.validate.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tower-x86_64-sdk${{ matrix.sdk }}
+          path: |
+            bin/packages/x86_64/tower/*.apk
+            bin/packages/x86_64/tower/*.ipk
+          if-no-files-found: error
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-x86_64-sdk${{ matrix.sdk }}
+          path: |
+            logs/**
+            *.log
+            **/*.log
+          if-no-files-found: ignore

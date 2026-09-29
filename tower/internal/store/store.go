@@ -3,6 +3,7 @@ package store
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -16,6 +17,7 @@ const stateFile = "tower.json"
 type State struct {
 	Subscriptions []model.SubscriptionSource `json:"subscriptions"`
 	Nodes         []model.ProxyNode          `json:"nodes"`
+	Schemes       []model.RuleScheme         `json:"schemes"`
 }
 
 // emptyState returns a State with non-nil slices so it serializes as [] rather
@@ -24,6 +26,7 @@ func emptyState() *State {
 	return &State{
 		Subscriptions: []model.SubscriptionSource{},
 		Nodes:         []model.ProxyNode{},
+		Schemes:       []model.RuleScheme{},
 	}
 }
 
@@ -34,6 +37,9 @@ func normalizeState(state *State) *State {
 	}
 	if state.Nodes == nil {
 		state.Nodes = []model.ProxyNode{}
+	}
+	if state.Schemes == nil {
+		state.Schemes = []model.RuleScheme{}
 	}
 	return state
 }
@@ -54,11 +60,49 @@ func (s *Store) Dir() string { return s.dir }
 
 func (s *Store) path() string { return filepath.Join(s.dir, stateFile) }
 
+// Prepare protects the data directory and existing private state from access
+// by other local users, including data written by older Tower versions.
+func (s *Store) Prepare() error {
+	if err := os.MkdirAll(s.dir, 0o700); err != nil {
+		return err
+	}
+	info, err := os.Lstat(s.dir)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("tower data path is not a directory")
+	}
+	if err := os.Chmod(s.dir, 0o700); err != nil {
+		return err
+	}
+	for _, name := range []string{stateFile, "local-share.json"} {
+		path := filepath.Join(s.dir, name)
+		info, err := os.Lstat(path)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("tower private state is not a regular file: %s", name)
+		}
+		if err := os.Chmod(path, 0o600); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Load reads the persisted state, returning an empty state when the file is
 // missing.
 func (s *Store) Load() (*State, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	if err := s.Prepare(); err != nil {
+		return nil, err
+	}
 
 	b, err := os.ReadFile(s.path())
 	if err != nil {
@@ -102,6 +146,9 @@ func (s *Store) Update(fn func(*State) error) (*State, error) {
 }
 
 func (s *Store) loadLocked() (*State, error) {
+	if err := s.Prepare(); err != nil {
+		return nil, err
+	}
 	b, err := os.ReadFile(s.path())
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -117,16 +164,28 @@ func (s *Store) loadLocked() (*State, error) {
 }
 
 func (s *Store) saveLocked(state *State) error {
-	if err := os.MkdirAll(s.dir, 0o755); err != nil {
+	if err := s.Prepare(); err != nil {
 		return err
 	}
 	b, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
 		return err
 	}
-	tmp := s.path() + ".tmp"
-	if err := os.WriteFile(tmp, b, 0o644); err != nil {
+	tmp, err := os.CreateTemp(s.dir, ".tower-*")
+	if err != nil {
 		return err
 	}
-	return os.Rename(tmp, s.path())
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(b); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), s.path())
 }

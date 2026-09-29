@@ -8,6 +8,7 @@ package generator
 import (
 	"crypto/sha1"
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -20,12 +21,40 @@ type Options struct {
 	Nodes  []model.ProxyNode
 	// Protocols is the set of enabled proxy kinds. Nil means all protocols.
 	Protocols []model.ProxyKind
+	// Scheme replaces the built-in proxy groups and rules. Nil keeps the
+	// minimal select + url-test fallback.
+	Scheme *model.RuleScheme
+	// PreferRuleSets keeps supported remote resources as client-native links.
+	// When false (or unsupported for a target), cached lines are inlined.
+	PreferRuleSets   bool
+	RuleSetLines     map[string][]string
+	plannedRules     []plannedRule
+	plannedProviders []plannedProvider
 }
 
 // Generate renders a full configuration for the target client.
 func Generate(opts Options) (string, error) {
+	if !opts.Target.Supported() {
+		return "", fmt.Errorf("unknown client target %q", opts.Target)
+	}
 	opts.Nodes = FilterNodes(opts.Nodes, opts.Protocols)
-	switch opts.Target.Family() {
+	family := opts.Target.Family()
+	if opts.Scheme != nil {
+		switch family {
+		case model.FamilySingBox:
+			return "", fmt.Errorf("%s 暂不支持规则方案导出", opts.Target.Name())
+		}
+		var err error
+		opts.Scheme, err = prepareScheme(opts.Scheme, uniquedNames(opts.Nodes))
+		if err != nil {
+			return "", err
+		}
+		opts.plannedRules, opts.plannedProviders, err = planSchemeRules(opts)
+		if err != nil {
+			return "", err
+		}
+	}
+	switch family {
 	case model.FamilyClash:
 		return generateClash(opts), nil
 	case model.FamilySingBox:
@@ -36,6 +65,68 @@ func Generate(opts Options) (string, error) {
 		return generateSurge(opts, true), nil
 	default:
 		return "", fmt.Errorf("client %s is not implemented yet", opts.Target.Name())
+	}
+}
+
+// prepareScheme removes optional groups whose node filters match nothing in
+// this export, then drops references to those groups. Rules may never silently
+// fall back to another policy: a rule targeting an empty group is an error.
+func prepareScheme(scheme *model.RuleScheme, nodeNames []string) (*model.RuleScheme, error) {
+	available := make(map[string]bool, len(scheme.Groups))
+	for _, group := range scheme.Groups {
+		for _, member := range group.Members {
+			if member.Type == model.MemberNodePattern && len(resolveGroupMembers(model.RuleSchemeGroup{Members: []model.RuleGroupMember{member}}, nodeNames)) > 0 ||
+				member.Type == model.MemberReference && builtinPolicy(member.Value) {
+				available[group.Name] = true
+				break
+			}
+		}
+	}
+	for changed := true; changed; {
+		changed = false
+		for _, group := range scheme.Groups {
+			if available[group.Name] {
+				continue
+			}
+			for _, member := range group.Members {
+				if member.Type == model.MemberReference && available[member.Value] {
+					available[group.Name] = true
+					changed = true
+					break
+				}
+			}
+		}
+	}
+	for _, rule := range scheme.Rules {
+		if !available[rule.Group] && !builtinPolicy(rule.Group) {
+			return nil, fmt.Errorf("策略组 %q 没有匹配到节点或有效引用", rule.Group)
+		}
+	}
+	copyScheme := *scheme
+	copyScheme.Groups = make([]model.RuleSchemeGroup, 0, len(scheme.Groups))
+	for _, group := range scheme.Groups {
+		if !available[group.Name] {
+			continue
+		}
+		copyGroup := group
+		copyGroup.Members = make([]model.RuleGroupMember, 0, len(group.Members))
+		for _, member := range group.Members {
+			if member.Type == model.MemberReference && (available[member.Value] || builtinPolicy(member.Value)) ||
+				member.Type == model.MemberNodePattern && len(resolveGroupMembers(model.RuleSchemeGroup{Members: []model.RuleGroupMember{member}}, nodeNames)) > 0 {
+				copyGroup.Members = append(copyGroup.Members, member)
+			}
+		}
+		copyScheme.Groups = append(copyScheme.Groups, copyGroup)
+	}
+	return &copyScheme, nil
+}
+
+func builtinPolicy(name string) bool {
+	switch strings.ToUpper(name) {
+	case "DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE":
+		return true
+	default:
+		return false
 	}
 }
 
@@ -56,6 +147,42 @@ func FilterNodes(nodes []model.ProxyNode, protocols []model.ProxyKind) []model.P
 		}
 	}
 	return out
+}
+
+// resolveGroupMembers expands a scheme group's members against the available
+// node names: references and builtin policies are kept verbatim, node-name
+// patterns are matched against the names.
+func resolveGroupMembers(group model.RuleSchemeGroup, nodeNames []string) []string {
+	var out []string
+	for _, m := range group.Members {
+		switch m.Type {
+		case model.MemberReference:
+			out = append(out, m.Value)
+		case model.MemberNodePattern:
+			if m.Value == ".*" && m.Exclude == "" {
+				out = append(out, nodeNames...)
+				continue
+			}
+			for _, n := range nodeNames {
+				if matchNodePattern(m.Value, n) && (m.Exclude == "" || !matchNodePattern(m.Exclude, n)) {
+					out = append(out, n)
+				}
+			}
+		}
+	}
+	return dedupStrings(out)
+}
+
+func matchNodePattern(pattern, name string) bool {
+	const negativeLookaheadPrefix = "^(?!.*((?i)"
+	const negativeLookaheadSuffix = ")).*$"
+	if strings.HasPrefix(pattern, negativeLookaheadPrefix) && strings.HasSuffix(pattern, negativeLookaheadSuffix) {
+		excluded := strings.TrimSuffix(strings.TrimPrefix(pattern, negativeLookaheadPrefix), negativeLookaheadSuffix)
+		re, err := regexp.Compile("(?i)(?:" + excluded + ")")
+		return err == nil && !re.MatchString(name)
+	}
+	re, err := regexp.Compile(pattern)
+	return err == nil && re.MatchString(name)
 }
 
 // header writes the leading comment block.

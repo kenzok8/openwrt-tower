@@ -1,6 +1,6 @@
 {
 	"admin/services/tower": {
-		"title": "塔台 Tower",
+		"title": "Tower",
 		"order": 41,
 		"action": {
 			"type": "firstchild"
@@ -31,9 +31,20 @@
 			"acl": [ "luci-app-tower" ]
 		}
 	},
+	"admin/services/tower/rules": {
+		"title": "规则",
+		"order": 3,
+		"action": {
+			"type": "view",
+			"path": "tower/rules"
+		},
+		"depends": {
+			"acl": [ "luci-app-tower" ]
+		}
+	},
 	"admin/services/tower/export": {
 		"title": "导出",
-		"order": 3,
+		"order": 4,
 		"action": {
 			"type": "view",
 			"path": "tower/export"
