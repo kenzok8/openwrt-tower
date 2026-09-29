@@ -59,7 +59,7 @@ make package/luci-app-tower/compile V=s
 
 随包提供两个 ACL4SSR 离线方案及相关 .list 文件。Self-Configuration 和 kenzok8 内置方案提供策略组与远程规则引用，远程规则正文只在手动刷新后缓存，不打进软件包。来源和许可证见 [第三方声明](THIRD-PARTY-NOTICES.md)。
 
-- /etc/tower/tower.json：订阅、节点和自定义规则方案。含私有数据，不要上传到 GitHub。
+- /etc/tower/tower.json：订阅、节点和自定义规则方案。
 - /etc/tower/rules/：随包安装的内置方案。
 - /etc/tower/rule-cache/：手动刷新后缓存的远程规则。
 
