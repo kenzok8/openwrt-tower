@@ -1,4 +1,4 @@
-# Tower for OpenWrt
+# openwrt-tower
 
 这是 [酱紫表的「塔台 Tower」](https://github.com/pengchujin/tower) 的 OpenWrt / LuCI 适配项目。感谢原作者开源 Tower 的产品设计与代码。本仓库由 kenzok8 维护，不是原版 Tower 的官方版本。
 
