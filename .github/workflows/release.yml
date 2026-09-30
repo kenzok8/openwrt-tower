@@ -333,3 +333,64 @@ jobs:
             <(find release-assets -maxdepth 1 -type f -printf '%f\n' | sort) \
             <(gh release view "$TAG" --json assets --jq '.assets[].name' | sort)
           gh release edit "$TAG" --draft=false
+
+  upload_feed:
+    name: Upload feed to R2
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: tower-*
+          path: artifacts
+          merge-multiple: false
+
+      - name: Organize feed structure
+        run: |
+          mkdir -p feed
+          for dir in artifacts/tower-*; do
+            [ -d "$dir" ] || continue
+            name=$(basename "$dir")
+            sdk=$(echo "$name" | sed 's/.*-sdk//')
+            arch=$(echo "$name" | sed 's/^tower-//; s/-sdk.*//')
+            target="feed/${sdk}/${arch}"
+            mkdir -p "$target"
+            find "$dir" -type f \( -name '*.ipk' -o -name '*.apk' \) -exec cp -v {} "$target/" \;
+          done
+          find feed -type f | sort
+
+      - name: Upload to Cloudflare R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          [ -z "$R2_ACCESS_KEY_ID" ] && { echo "No R2 credentials, skipping"; exit 0; }
+          curl -fsSL https://rclone.org/install.sh | sudo bash
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf <<EOF
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${R2_ACCESS_KEY_ID}
+          secret_access_key = ${R2_SECRET_ACCESS_KEY}
+          endpoint = ${R2_ENDPOINT}
+          acl = private
+          no_check_bucket = true
+          EOF
+          find feed -type f | grep -q . || { echo "feed empty, skip sync"; exit 0; }
+          rclone sync feed/ "r2:${R2_BUCKET}/openwrt-feed/tower/" \
+            --checksum --fast-list --transfers 8 --checkers 16
+
+      - name: Trigger unified feed aggregation
+        env:
+          AGGREGATE_FEED_TOKEN: ${{ secrets.AGGREGATE_FEED_TOKEN }}
+        run: |
+          [ -z "$AGGREGATE_FEED_TOKEN" ] && { echo "No aggregate token, skip trigger"; exit 0; }
+          curl -fsSL -X POST \
+            -H "Authorization: Bearer ${AGGREGATE_FEED_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/kenzok8/openwrt-clashoo/actions/workflows/aggregate-feed.yml/dispatches \
+            -d '{"ref":"main"}' || echo "Aggregate trigger failed; scheduled workflow will retry."
