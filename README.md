@@ -83,7 +83,7 @@ make package/luci-app-tower/compile V=s
 
 ### Release 手动安装
 
-从 [Releases](https://github.com/kenzok8/openwrt-tower/releases) 下载与你的系统版本、架构匹配的 `tower-<架构>-sdk<版本>.tar.gz`，解压后安装其中的 `tower` 与 `luci-app-tower`。24.10 使用 IPK，25.12 使用 APK；Release APK 未签名，手动安装需使用 `apk add --allow-untrusted`。已有可信软件源的设备，优先通过软件源安装。
+从 [Releases](https://github.com/kenzok8/openwrt-tower/releases) 下载与你的系统版本、架构匹配的 `tower` 与 `luci-app-tower` 两个包。24.10 使用 IPK，25.12 使用 APK；Release APK 未签名，手动安装需使用 `apk add --allow-untrusted`。已有可信软件源的设备，优先通过软件源安装。
 
 ---
 

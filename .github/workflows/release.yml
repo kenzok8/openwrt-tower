@@ -217,7 +217,6 @@ jobs:
               else
                 extension=apk
               fi
-              package_files=()
               for package in tower luci-app-tower; do
                 matches=()
                 while IFS= read -r -d '' file; do
@@ -230,10 +229,14 @@ jobs:
                   echo "::error::Expected exactly one $package .$extension in $artifact, found ${#matches[@]}"
                   exit 1
                 }
-                package_files+=("${matches[0]##*/}")
+                base=$(basename "${matches[0]}" ".$extension")
+                safe="${base//\~/.}"
+                if [ "$extension" = "apk" ]; then
+                  cp "${matches[0]}" "release-assets/${safe}-${arch}.apk"
+                else
+                  cp "${matches[0]}" "release-assets/${safe}.ipk"
+                fi
               done
-              tar -czf "release-assets/tower-$arch-sdk$sdk.tar.gz" \
-                -C "$artifact" "${package_files[@]}"
             done
           done
           actual=$(find artifacts -mindepth 1 -maxdepth 1 -type d -name 'tower-*' | wc -l)
@@ -241,11 +244,63 @@ jobs:
             echo "::error::Expected $expected package artifacts, found $actual"
             exit 1
           }
-          asset_count=$(find release-assets -maxdepth 1 -type f | wc -l)
-          [ "$asset_count" -eq "$expected" ] || {
-            echo "::error::Expected $expected release archives, found $asset_count"
+          tower_ipk=$(find release-assets -maxdepth 1 -type f -name 'tower_*.ipk' | wc -l)
+          tower_apk=$(find release-assets -maxdepth 1 -type f -name 'tower-*.apk' | wc -l)
+          [ "$((tower_ipk + tower_apk))" -eq "$expected" ] || {
+            echo "::error::Expected $expected tower packages, found $((tower_ipk + tower_apk))"
             exit 1
           }
+          luci_ipk=$(find release-assets -maxdepth 1 -type f -name 'luci-app-tower_*.ipk' | wc -l)
+          luci_apk=$(find release-assets -maxdepth 1 -type f -name 'luci-app-tower-*.apk' | wc -l)
+          [ "$((luci_ipk + luci_apk))" -ge 1 ] || {
+            echo "::error::No luci-app-tower package found"
+            exit 1
+          }
+      - name: Generate release notes
+        env:
+          TAG: ${{ steps.release_tag.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          BASE="https://github.com/${REPO}/releases/download/${TAG}"
+          archs=(
+            aarch64_cortex-a53 aarch64_cortex-a72 aarch64_generic
+            arm_cortex-a5_vfpv4 arm_cortex-a7 arm_cortex-a7_neon-vfpv4
+            arm_cortex-a8_vfpv3 arm_cortex-a9 arm_cortex-a9_neon
+            arm_cortex-a9_vfpv3-d16 arm_cortex-a15_neon-vfpv4
+            arm_fa526 i386_pentium-mmx i386_pentium4 mips64_octeonplus
+            mips_24kc mips_4kec mips_mips32 mipsel_24kc
+            mipsel_24kc_24kf mipsel_74kc mipsel_mips32
+            x86_64
+          )
+          {
+            echo "## SDK 24.10 · IPK"
+            echo ""
+            echo "| 架构 | tower | luci-app-tower |"
+            echo "| :--- | :--- | :--- |"
+            luci_ipk=$(ls release-assets/luci-app-tower_*_all.ipk 2>/dev/null | head -1)
+            luci_link=$( [ -n "$luci_ipk" ] && echo "[$(basename "$luci_ipk")](${BASE}/$(basename "$luci_ipk"))" || echo "—" )
+            for arch in "${archs[@]}"; do
+              f=$(ls "release-assets/tower_*_${arch}.ipk" 2>/dev/null | head -1)
+              link=$( [ -n "$f" ] && echo "[$(basename "$f")](${BASE}/$(basename "$f"))" || echo "—" )
+              echo "| \`${arch}\` | ${link} | ${luci_link} |"
+            done
+            echo ""
+            echo "## SDK 25.12 · APK"
+            echo ""
+            echo "| 架构 | tower | luci-app-tower |"
+            echo "| :--- | :--- | :--- |"
+            for arch in "${archs[@]}"; do
+              [ "$arch" = "mips_4kec" ] && continue
+              f_core=$(ls "release-assets/tower-*-${arch}.apk" 2>/dev/null | head -1)
+              f_luci=$(ls "release-assets/luci-app-tower-*-${arch}.apk" 2>/dev/null | head -1)
+              link_core=$( [ -n "$f_core" ] && echo "[$(basename "$f_core")](${BASE}/$(basename "$f_core"))" || echo "—" )
+              link_luci=$( [ -n "$f_luci" ] && echo "[$(basename "$f_luci")](${BASE}/$(basename "$f_luci"))" || echo "—" )
+              echo "| \`${arch}\` | ${link_core} | ${link_luci} |"
+            done
+          } > release_notes.md
+          cat release_notes.md
+
       - name: Create and verify draft release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -266,7 +321,7 @@ jobs:
             --target "$TARGET" \
             --draft \
             --title "Tower $TAG — OpenWrt packages" \
-            --notes "Each archive contains tower and luci-app-tower with their original package filenames. SDK 24.10 packages use IPK; SDK 25.12 packages use APK. Archive names identify the target architecture and SDK. The release is created only after the complete supported build matrix succeeds." \
+            --notes-file release_notes.md \
             "${prerelease_args[@]}"
           expected_assets=$(find release-assets -maxdepth 1 -type f | wc -l)
           uploaded_assets=$(gh release view "$TAG" --json assets --jq '.assets | length')
