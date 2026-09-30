@@ -69,6 +69,18 @@
 
 ## 安装
 
+### 一键安装
+
+在 OpenWrt / ImmortalWrt 路由器上以 `root` 执行。脚本接入现有的 [dllkids 软件源](https://down.dllkids.xyz/openwrt-feed/)，再通过 `apk`（25.12）或 `opkg`（24.10）安装 `tower` 与 `luci-app-tower`：
+
+```sh
+wget -O - https://raw.githubusercontent.com/kenzok8/openwrt-tower/main/scripts/install.sh | sh
+```
+
+已接入该软件源时，也可以运行 `apk update && apk add tower luci-app-tower`，或在 24.10 上运行 `opkg update && opkg install tower luci-app-tower`。
+
+### SDK 自行编译
+
 作为 `src-link` feed 接入已装好 Go 编译环境的 OpenWrt / ImmortalWrt SDK 或 Buildroot：
 
 ```sh
