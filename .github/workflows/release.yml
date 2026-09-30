@@ -1,0 +1,280 @@
+name: Release packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Create a release after all package builds pass
+        required: false
+        type: boolean
+        default: false
+      prerelease:
+        description: Mark this release as a prerelease
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: tower/go.mod
+          cache-dependency-path: tower/go.sum
+      - name: Check Go and LuCI sources
+        run: |
+          set -euo pipefail
+          cd tower
+          go test ./...
+          go vet ./...
+          go build ./cmd/tower
+          cd ..
+          find luci-app-tower/htdocs -name '*.js' -print0 | xargs -0 -n1 node --check
+          find luci-app-tower/root/usr/share -name '*.json' -print0 | xargs -0 -n1 jq empty
+          sh -n tower/files/tower.init
+          git diff --check
+
+  package:
+    needs: check
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ["24.10", "25.12"]
+        arch:
+          - aarch64_cortex-a53
+          - aarch64_cortex-a72
+          - aarch64_generic
+          - arm_cortex-a5_vfpv4
+          - arm_cortex-a7
+          - arm_cortex-a7_neon-vfpv4
+          - arm_cortex-a8_vfpv3
+          - arm_cortex-a9
+          - arm_cortex-a9_neon
+          - arm_cortex-a9_vfpv3-d16
+          - arm_cortex-a15_neon-vfpv4
+          - arm_fa526
+          - i386_pentium-mmx
+          - i386_pentium4
+          - mips64_octeonplus
+          - mips_24kc
+          - mips_4kec
+          - mips_mips32
+          - mipsel_24kc
+          - mipsel_24kc_24kf
+          - mipsel_74kc
+          - mipsel_mips32
+          - x86_64
+        exclude:
+          - sdk: "25.12"
+            arch: mips_4kec
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare SDK action
+        uses: actions/checkout@v4
+        with:
+          repository: kenzok8/gh-action-sdk
+          ref: 44f98c51d04aebd1aa79fe4f603559c1ec2085da
+          path: .github/actions/gh-action-sdk
+          persist-credentials: false
+      - name: Free space for the SDK image
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+            /usr/local/share/boost /opt/hostedtoolcache/CodeQL /usr/local/.ghcup
+          docker system df
+          df -h /
+      - name: Build Tower packages
+        uses: ./.github/actions/gh-action-sdk
+        env:
+          CONTAINER: immortalwrt/sdk
+          ARCH: ${{ matrix.arch }}-openwrt-${{ matrix.sdk }}
+          FEEDNAME: tower
+          PACKAGES: tower luci-app-tower
+          NO_REFRESH_CHECK: true
+          IGNORE_ERRORS: false
+          INDEX: 1
+          GOLANG_REPO: https://github.com/kenzok8/golang
+          GOLANG_BRANCH: '1.25'
+      - name: Validate expected packages
+        env:
+          SDK: ${{ matrix.sdk }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          if [ "$SDK" = "24.10" ]; then
+            extension=ipk
+          else
+            extension=apk
+          fi
+          output_dir="bin/packages/$ARCH/tower"
+          for package in tower luci-app-tower; do
+            found=0
+            while IFS= read -r -d '' file; do
+              name=${file##*/}
+              case "$name" in
+                "$package"-*."$extension"|"$package"_*."$extension")
+                  found=1
+                  break
+                  ;;
+              esac
+            done < <(find "$output_dir" -maxdepth 1 -type f -name "*.$extension" -print0 2>/dev/null || true)
+            [ "$found" -eq 1 ] || {
+              echo "::error::$package .$extension package is missing for $ARCH SDK $SDK"
+              exit 1
+            }
+          done
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: tower-${{ matrix.arch }}-sdk${{ matrix.sdk }}
+          path: |
+            bin/packages/${{ matrix.arch }}/tower/*.ipk
+            bin/packages/${{ matrix.arch }}/tower/*.apk
+          if-no-files-found: error
+          compression-level: 0
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ matrix.arch }}-sdk${{ matrix.sdk }}
+          path: |
+            logs/**
+            *.log
+            **/*.log
+          if-no-files-found: ignore
+
+  release:
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download all package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: tower-*
+          path: artifacts
+          merge-multiple: false
+      - name: Resolve release tag
+        id: release_tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            tag="$GITHUB_REF_NAME"
+          else
+            tag="$(TZ=Asia/Shanghai date +v%Y.%m.%d)-r$GITHUB_RUN_NUMBER"
+          fi
+          [[ "$tag" == v* ]] || {
+            echo "::error::Releases must use a v* tag; got $tag"
+            exit 1
+          }
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && \
+             gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" >/dev/null 2>&1; then
+            echo "::error::Tag $tag already exists; refusing to replace it"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Verify complete matrix and prepare release assets
+        env:
+          TAG: ${{ steps.release_tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          archs=(
+            aarch64_cortex-a53 aarch64_cortex-a72 aarch64_generic
+            arm_cortex-a5_vfpv4 arm_cortex-a7 arm_cortex-a7_neon-vfpv4
+            arm_cortex-a8_vfpv3 arm_cortex-a9 arm_cortex-a9_neon
+            arm_cortex-a9_vfpv3-d16 arm_cortex-a15_neon-vfpv4
+            arm_fa526 i386_pentium-mmx i386_pentium4 mips64_octeonplus
+            mips_24kc mips_4kec mips_mips32 mipsel_24kc
+            mipsel_24kc_24kf mipsel_74kc mipsel_mips32
+            x86_64
+          )
+          mkdir -p release-assets
+          expected=0
+          for sdk in 24.10 25.12; do
+            for arch in "${archs[@]}"; do
+              [ "$sdk/$arch" != "25.12/mips_4kec" ] || continue
+              expected=$((expected + 1))
+              artifact="artifacts/tower-$arch-sdk$sdk"
+              [ -d "$artifact" ] || {
+                echo "::error::Missing artifact: tower-$arch-sdk$sdk"
+                exit 1
+              }
+              if [ "$sdk" = "24.10" ]; then
+                extension=ipk
+              else
+                extension=apk
+              fi
+              package_files=()
+              for package in tower luci-app-tower; do
+                matches=()
+                while IFS= read -r -d '' file; do
+                  name=${file##*/}
+                  case "$name" in
+                    "$package"-*."$extension"|"$package"_*."$extension") matches+=("$file") ;;
+                  esac
+                done < <(find "$artifact" -maxdepth 1 -type f -name "*.$extension" -print0)
+                [ "${#matches[@]}" -eq 1 ] || {
+                  echo "::error::Expected exactly one $package .$extension in $artifact, found ${#matches[@]}"
+                  exit 1
+                }
+                package_files+=("${matches[0]##*/}")
+              done
+              tar -czf "release-assets/tower-$arch-sdk$sdk.tar.gz" \
+                -C "$artifact" "${package_files[@]}"
+            done
+          done
+          actual=$(find artifacts -mindepth 1 -maxdepth 1 -type d -name 'tower-*' | wc -l)
+          [ "$actual" -eq "$expected" ] || {
+            echo "::error::Expected $expected package artifacts, found $actual"
+            exit 1
+          }
+          asset_count=$(find release-assets -maxdepth 1 -type f | wc -l)
+          [ "$asset_count" -eq "$expected" ] || {
+            echo "::error::Expected $expected release archives, found $asset_count"
+            exit 1
+          }
+      - name: Create and verify draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release_tag.outputs.tag }}
+          PRERELEASE: ${{ inputs.prerelease || false }}
+          TARGET: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::A release already exists for $TAG; refusing to replace it"
+            exit 1
+          fi
+          prerelease_args=()
+          if [ "$PRERELEASE" = "true" ]; then
+            prerelease_args+=(--prerelease)
+          fi
+          gh release create "$TAG" release-assets/* \
+            --target "$TARGET" \
+            --draft \
+            --title "Tower $TAG — OpenWrt packages" \
+            --notes "Each archive contains tower and luci-app-tower with their original package filenames. SDK 24.10 packages use IPK; SDK 25.12 packages use APK. Archive names identify the target architecture and SDK. The release is created only after the complete supported build matrix succeeds." \
+            "${prerelease_args[@]}"
+          expected_assets=$(find release-assets -maxdepth 1 -type f | wc -l)
+          uploaded_assets=$(gh release view "$TAG" --json assets --jq '.assets | length')
+          [ "$uploaded_assets" -eq "$expected_assets" ] || {
+            echo "::error::Draft release has $uploaded_assets assets; expected $expected_assets"
+            exit 1
+          }
+          diff -u \
+            <(find release-assets -maxdepth 1 -type f -printf '%f\n' | sort) \
+            <(gh release view "$TAG" --json assets --jq '.assets[].name' | sort)
+          gh release edit "$TAG" --draft=false
