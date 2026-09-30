@@ -11,3 +11,4 @@ tower/tower
 *.apk
 *.ipk
 .DS_Store
+*_test.go
