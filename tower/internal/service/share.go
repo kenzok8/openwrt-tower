@@ -67,9 +67,6 @@ func (s *Service) CreateLocalShare(destination string, nodeIDs []string, schemeI
 		if !target.Supported() {
 			return ShareResult{}, fmt.Errorf("unknown share destination: %s", destination)
 		}
-		if target.Family() == model.FamilySingBox && schemeID != "" {
-			return ShareResult{}, fmt.Errorf("sing-box JSON 暂不支持规则方案导出")
-		}
 		var err error
 		content, err = s.ExportWithOptions(target, nil, nodeIDs, schemeID, preferRuleSets)
 		if err != nil {

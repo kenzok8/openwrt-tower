@@ -2,6 +2,7 @@ package generator
 
 import (
 	"encoding/json"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -16,20 +17,26 @@ func generateSingBox(opts Options) string {
 
 	outbounds := []any{}
 
-	// Policy groups: a select group, a url-test group, and DIRECT.
-	outbounds = append(outbounds, map[string]any{
-		"tag":       selectGroupName,
-		"type":      "selector",
-		"outbounds": append(append([]string{}, nodeTags...), singBoxDirectTag),
-	})
-	outbounds = append(outbounds, map[string]any{
-		"tag":       autoGroupName,
-		"type":      "urltest",
-		"url":       "https://www.gstatic.com/generate_204",
-		"interval":  "300s",
-		"tolerance": 50,
-		"outbounds": nodeTags,
-	})
+	if opts.Scheme != nil {
+		for _, g := range opts.Scheme.Groups {
+			outbounds = append(outbounds, singBoxSchemeGroup(g, nodeTags))
+		}
+	} else {
+		// Policy groups: a select group, a url-test group, and DIRECT.
+		outbounds = append(outbounds, map[string]any{
+			"tag":       selectGroupName,
+			"type":      "selector",
+			"outbounds": append(append([]string{}, nodeTags...), singBoxDirectTag),
+		})
+		outbounds = append(outbounds, map[string]any{
+			"tag":       autoGroupName,
+			"type":      "urltest",
+			"url":       "https://www.gstatic.com/generate_204",
+			"interval":  "300s",
+			"tolerance": 50,
+			"outbounds": nodeTags,
+		})
+	}
 	outbounds = append(outbounds, map[string]any{
 		"tag":  singBoxDirectTag,
 		"type": "direct",
@@ -41,6 +48,18 @@ func generateSingBox(opts Options) string {
 		if ob := singBoxOutbound(n, tag); ob != nil {
 			outbounds = append(outbounds, ob)
 		}
+	}
+
+	route := map[string]any{"auto_detect_interface": true}
+	if opts.Scheme != nil {
+		rules, finalGroup := singBoxSchemeRoute(opts)
+		route["rules"] = rules
+		route["final"] = finalGroup
+		if len(opts.plannedProviders) > 0 {
+			route["rule_set"] = singBoxSchemeRuleSets(opts)
+		}
+	} else {
+		route["final"] = selectGroupName
 	}
 
 	config := map[string]any{
@@ -56,10 +75,7 @@ func generateSingBox(opts Options) string {
 			},
 		},
 		"outbounds": outbounds,
-		"route": map[string]any{
-			"final":                 selectGroupName,
-			"auto_detect_interface": true,
-		},
+		"route":     route,
 	}
 
 	b, err := json.MarshalIndent(config, "", "  ")
@@ -67,6 +83,148 @@ func generateSingBox(opts Options) string {
 		return "{}\n"
 	}
 	return string(b) + "\n"
+}
+
+// singBoxSchemeGroup renders one rule-scheme strategy group as a sing-box
+// selector/urltest outbound. Empty groups fall back to DIRECT.
+func singBoxSchemeGroup(g model.RuleSchemeGroup, nodeNames []string) map[string]any {
+	members := resolveGroupMembers(g, nodeNames)
+	if len(members) == 0 {
+		members = []string{singBoxDirectTag}
+	}
+	outbound := map[string]any{
+		"tag":       g.Name,
+		"type":      "selector",
+		"outbounds": members,
+	}
+	if g.Kind == model.KindURLTest {
+		outbound["type"] = "urltest"
+		outbound["url"] = firstNonEmpty(g.URL, "https://www.gstatic.com/generate_204")
+		interval := g.Interval
+		if interval <= 0 {
+			interval = 300
+		}
+		tolerance := g.Tolerance
+		if tolerance <= 0 {
+			tolerance = 50
+		}
+		outbound["interval"] = strconv.Itoa(interval) + "s"
+		outbound["tolerance"] = tolerance
+	}
+	return outbound
+}
+
+// singBoxRuleFields maps Clash-style rule condition prefixes to sing-box rule
+// fields. Conditions without a sing-box equivalent are dropped.
+var singBoxRuleFields = map[string]string{
+	"DOMAIN":         "domain",
+	"DOMAIN-SUFFIX":  "domain_suffix",
+	"DOMAIN-KEYWORD": "domain_keyword",
+	"IP-CIDR":        "ip_cidr",
+	"IP-CIDR6":       "ip_cidr",
+	"IP6-CIDR":       "ip_cidr",
+	"PROCESS-NAME":   "process_name",
+}
+
+func isSingBoxReject(policy string) bool {
+	switch strings.ToUpper(strings.TrimSpace(policy)) {
+	case "REJECT", "REJECT-DROP":
+		return true
+	default:
+		return false
+	}
+}
+
+// singBoxSchemeRoute renders route.rules for a rule scheme: inline rules are
+// grouped by policy into compact field arrays, native rule sets are referenced
+// by tag, and REJECT becomes a rule action (sing-box 1.11 removed the block
+// outbound). It also returns the final fallback outbound.
+func singBoxSchemeRoute(opts Options) ([]any, string) {
+	finalGroup := singBoxDirectTag
+	if len(opts.Scheme.Groups) > 0 {
+		finalGroup = opts.Scheme.Groups[0].Name
+	}
+
+	var rules []any
+	var ordered []string
+	byPolicy := map[string]map[string][]string{}
+
+	flush := func() {
+		for _, policy := range ordered {
+			fields := byPolicy[policy]
+			if len(fields) == 0 {
+				continue
+			}
+			rule := map[string]any{}
+			keys := make([]string, 0, len(fields))
+			for k := range fields {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			for _, k := range keys {
+				rule[k] = dedupStrings(fields[k])
+			}
+			if isSingBoxReject(policy) {
+				rule["action"] = "reject"
+			} else {
+				rule["outbound"] = policy
+			}
+			rules = append(rules, rule)
+		}
+		ordered = nil
+		byPolicy = map[string]map[string][]string{}
+	}
+
+	for _, planned := range opts.plannedRules {
+		if planned.rule.Final {
+			finalGroup = planned.rule.Group
+			continue
+		}
+		if planned.native {
+			flush()
+			rule := map[string]any{"rule_set": []string{planned.providerID}}
+			if isSingBoxReject(planned.rule.Group) {
+				rule["action"] = "reject"
+			} else {
+				rule["outbound"] = planned.rule.Group
+			}
+			rules = append(rules, rule)
+			continue
+		}
+		fields := splitRuleFields(planned.rule.Body)
+		if len(fields) < 2 {
+			continue
+		}
+		field := singBoxRuleFields[strings.ToUpper(fields[0])]
+		if field == "" || fields[1] == "" {
+			continue
+		}
+		policy := planned.rule.Group
+		if _, ok := byPolicy[policy]; !ok {
+			byPolicy[policy] = map[string][]string{}
+			ordered = append(ordered, policy)
+		}
+		byPolicy[policy][field] = append(byPolicy[policy][field], fields[1])
+	}
+	flush()
+
+	return rules, finalGroup
+}
+
+// singBoxSchemeRuleSets renders route.rule_set entries for native sing-box
+// "source" rule sets.
+func singBoxSchemeRuleSets(opts Options) []any {
+	sets := make([]any, 0, len(opts.plannedProviders))
+	for _, p := range opts.plannedProviders {
+		sets = append(sets, map[string]any{
+			"type":            "remote",
+			"tag":             p.id,
+			"format":          "source",
+			"url":             p.resource.URL,
+			"update_interval": "1d",
+		})
+	}
+	return sets
 }
 
 // singBoxOutbound serializes one proxy node to a sing-box outbound object.

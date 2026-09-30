@@ -2,7 +2,10 @@ package generator
 
 import (
 	"crypto/sha1"
+	"encoding/json"
 	"fmt"
+	"net/url"
+	"path"
 	"strings"
 
 	"github.com/kenzok8/tower/internal/model"
@@ -29,6 +32,7 @@ func planSchemeRules(opts Options) ([]plannedRule, []plannedProvider, error) {
 	providerSeen := make(map[string]bool)
 	clashTarget := opts.Target.Family() == model.FamilyClash
 	surgeTarget := opts.Target.Family() == model.FamilySurge
+	singBoxTarget := opts.Target.Family() == model.FamilySingBox
 
 	for _, source := range opts.Scheme.Rules {
 		if source.Resource == nil {
@@ -40,11 +44,11 @@ func planSchemeRules(opts Options) ([]plannedRule, []plannedProvider, error) {
 		if format == "" {
 			format = "text"
 		}
-		native := opts.PreferRuleSets && ((clashTarget && (format == "text" || format == "yaml" || format == "mrs")) || (surgeTarget && format == "text"))
+		native := opts.PreferRuleSets && ((clashTarget && (format == "text" || format == "yaml" || format == "mrs")) || (surgeTarget && format == "text") || (singBoxTarget && isSingBoxSource(resource, opts.RuleSetLines[resource.URL])))
 		if native {
 			id := ruleSetID(resource)
 			rules = append(rules, plannedRule{rule: source, native: true, providerID: id})
-			if clashTarget && !providerSeen[id] {
+			if (clashTarget || singBoxTarget) && !providerSeen[id] {
 				providerSeen[id] = true
 				providers = append(providers, plannedProvider{id: id, resource: resource})
 			}
@@ -97,6 +101,22 @@ func resourceLines(resource model.RuleSchemeRuleSet, lines []string) ([]string, 
 	default:
 		return nil, fmt.Errorf("规则集 %s 使用不支持的格式 %q", resource.URL, resource.Format)
 	}
+}
+
+// isSingBoxSource reports whether a remote rule set is a sing-box "source"
+// file (JSON whose root object carries a rules array) that sing-box can consume
+// natively through route.rule_set.
+func isSingBoxSource(resource model.RuleSchemeRuleSet, lines []string) bool {
+	u, err := url.Parse(resource.URL)
+	if err != nil || !strings.EqualFold(path.Ext(u.Path), ".json") {
+		return false
+	}
+	var doc map[string]any
+	if err := json.Unmarshal([]byte(strings.Join(lines, "\n")), &doc); err != nil {
+		return false
+	}
+	rules, ok := doc["rules"].([]any)
+	return ok && rules != nil
 }
 
 func ruleSetID(resource model.RuleSchemeRuleSet) string {

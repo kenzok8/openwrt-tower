@@ -40,10 +40,6 @@ func Generate(opts Options) (string, error) {
 	opts.Nodes = FilterNodes(opts.Nodes, opts.Protocols)
 	family := opts.Target.Family()
 	if opts.Scheme != nil {
-		switch family {
-		case model.FamilySingBox:
-			return "", fmt.Errorf("%s 暂不支持规则方案导出", opts.Target.Name())
-		}
 		var err error
 		opts.Scheme, err = prepareScheme(opts.Scheme, uniquedNames(opts.Nodes))
 		if err != nil {
