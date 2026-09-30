@@ -48,8 +48,8 @@ const openwrtClients = [
 	{ id: 'openclash', name: 'OpenClash', icon: 'OpenClash.png', detail: 'Mihomo YAML' },
 	{ id: 'nikki', name: 'Nikki', icon: 'Nikki.png', detail: 'Mihomo YAML' },
 	{ id: 'clashoo-mihomo', name: 'Clashoo · Mihomo', icon: 'Clashoo.png', detail: 'Mihomo YAML' },
-	{ id: 'clashoo-singbox', name: 'Clashoo · sing-box', icon: 'Clashoo.png', detail: 'sing-box JSON', nodeOnly: true },
-	{ id: 'momo', name: 'Momo', icon: 'ClientSingBox.png', detail: 'sing-box JSON · 需适配入站', nodeOnly: true },
+	{ id: 'clashoo-singbox', name: 'Clashoo · sing-box', icon: 'Clashoo.png', detail: 'sing-box JSON' },
+	{ id: 'momo', name: 'Momo', icon: 'ClientSingBox.png', detail: 'sing-box JSON · 需适配入站' },
 	{ id: 'daede', name: 'daede', target: 'links', icon: 'ClientDae.png', detail: '节点订阅 · 规则在插件中管理', nodeOnly: true, allowedKinds: [ 'ss', 'vmess', 'vless', 'trojan', 'hysteria2', 'tuic', 'socks5' ] }
 ];
 

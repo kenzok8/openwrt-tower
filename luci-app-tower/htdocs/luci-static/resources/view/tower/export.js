@@ -326,18 +326,14 @@ return view.extend({
 
 		function updateTargetCapabilities() {
 			var destination = currentDestination();
-			var nodeOnly = !!destination.nodeOnly || destination.id === 'sing-box' || destination.id === 'hiddify';
+			var nodeOnly = !!destination.nodeOnly;
 			schemeSelect.disabled = nodeOnly;
 			preferRuleSets.disabled = nodeOnly;
 			generateBtn.textContent = destination.target === 'links' ? _('生成节点订阅') : _('生成配置与链接');
 			sharePanel.querySelector('#tower-copy-config').textContent = destination.target === 'links' ? _('复制节点订阅') : _('复制配置文本');
 			if (nodeOnly) {
 				schemeSelect.value = '';
-				targetNote.textContent = destination.target === 'links'
-					? _('此目标只导出节点订阅；完整配置和分流规则仍在目标插件中管理。')
-					: destination.id === 'momo'
-						? _('Momo 可导入 sing-box JSON；启用代理前须按 Momo 的 TCP、UDP 和 DNS 模式补齐对应入站。当前仅导出默认分流。')
-						: _('sing-box JSON 目前只支持默认分流，不支持导入的规则方案。');
+				targetNote.textContent = _('此目标只导出节点订阅；完整配置和分流规则仍在目标插件中管理。');
 			} else {
 				targetNote.textContent = _('使用所选规则方案生成完整配置；兼容目标仍需在对应插件中导入验证。');
 			}
