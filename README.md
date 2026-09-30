@@ -81,6 +81,10 @@ make package/luci-app-tower/compile V=s
 
 安装或升级前请备份 `/etc/config/tower` 和 `/etc/tower/`。
 
+### Release 手动安装
+
+从 [Releases](https://github.com/kenzok8/openwrt-tower/releases) 下载与你的系统版本、架构匹配的 `tower-<架构>-sdk<版本>.tar.gz`，解压后安装其中的 `tower` 与 `luci-app-tower`。24.10 使用 IPK，25.12 使用 APK；Release APK 未签名，手动安装需使用 `apk add --allow-untrusted`。已有可信软件源的设备，优先通过软件源安装。
+
 ---
 
 ## 开发
@@ -97,7 +101,8 @@ go build ./cmd/tower
 
 ## 系统要求
 
-- OpenWrt / ImmortalWrt 24.10+（当前 CI 仅验证 x86_64 的 24.10 / 25.12）
+- ImmortalWrt SDK 24.10：23 个架构通过交叉编译；SDK 25.12：22 个架构通过交叉编译（不含 `mips_4kec`）
+- 252 真机仅验证 x86_64 的 25.12；其他架构目前是编译验证，不代表逐设备运行验证
 
 ---
 
