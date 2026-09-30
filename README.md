@@ -31,7 +31,6 @@
 </tr>
 </table>
 <br>
-截图统一存放在 [kenzok8/screenshot/tower](https://github.com/kenzok8/kenzok8/tree/main/screenshot/tower)。
 </details>
 
 ---
