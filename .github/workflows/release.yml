@@ -281,7 +281,7 @@ jobs:
             luci_ipk=$(ls release-assets/luci-app-tower_*_all.ipk 2>/dev/null | head -1)
             luci_link=$( [ -n "$luci_ipk" ] && echo "[$(basename "$luci_ipk")](${BASE}/$(basename "$luci_ipk"))" || echo "—" )
             for arch in "${archs[@]}"; do
-              f=$(ls "release-assets/tower_*_${arch}.ipk" 2>/dev/null | head -1)
+              f=$(ls release-assets/tower_*_"${arch}".ipk 2>/dev/null | head -1)
               link=$( [ -n "$f" ] && echo "[$(basename "$f")](${BASE}/$(basename "$f"))" || echo "—" )
               echo "| \`${arch}\` | ${link} | ${luci_link} |"
             done
@@ -292,8 +292,8 @@ jobs:
             echo "| :--- | :--- | :--- |"
             for arch in "${archs[@]}"; do
               [ "$arch" = "mips_4kec" ] && continue
-              f_core=$(ls "release-assets/tower-*-${arch}.apk" 2>/dev/null | head -1)
-              f_luci=$(ls "release-assets/luci-app-tower-*-${arch}.apk" 2>/dev/null | head -1)
+              f_core=$(ls release-assets/tower-*-"${arch}".apk 2>/dev/null | head -1)
+              f_luci=$(ls release-assets/luci-app-tower-*-"${arch}".apk 2>/dev/null | head -1)
               link_core=$( [ -n "$f_core" ] && echo "[$(basename "$f_core")](${BASE}/$(basename "$f_core"))" || echo "—" )
               link_luci=$( [ -n "$f_luci" ] && echo "[$(basename "$f_luci")](${BASE}/$(basename "$f_luci"))" || echo "—" )
               echo "| \`${arch}\` | ${link_core} | ${link_luci} |"
