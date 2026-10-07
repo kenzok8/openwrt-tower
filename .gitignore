@@ -12,8 +12,3 @@ tower/tower
 *.ipk
 .DS_Store
 *_test.go
-!tower/internal/generator/generator_test.go
-!tower/internal/generator/links_test.go
-!tower/internal/parser/parser_test.go
-!tower/internal/service/service_test.go
-!tower/internal/service/dae_validate_test.go
