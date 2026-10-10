@@ -344,7 +344,7 @@ func (s *Service) PreflightExportWithOptions(target model.ClientTarget, protocol
 		}
 		return generator.PreflightResult{}, err
 	}
-	if target == model.ClientDAE {
+	if target.Family() == model.FamilyDAE {
 		result := generator.DAEPreflight(options)
 		if result.Status == generator.PreflightExact {
 			options.Strict = true
@@ -388,7 +388,7 @@ func (s *Service) PreflightExportStrictWithServiceRegions(target model.ClientTar
 			return generator.PreflightResult{Status: generator.PreflightUnsupported, Issues: []generator.PreflightIssue{{Code: "node_protocol", Severity: "blocking", Location: "nodes", Message: fmt.Sprintf("当前客户端不支持协议 %s", node.Kind)}}, Planned: []generator.PreflightItem{}}, nil
 		}
 	}
-	if target == model.ClientDAE {
+	if target.Family() == model.FamilyDAE {
 		result := generator.DAEPreflight(options)
 		if result.Status != generator.PreflightExact {
 			return result, nil
@@ -485,7 +485,7 @@ func (s *Service) exportOptionsWithServiceRegions(target model.ClientTarget, pro
 			if resource == nil {
 				continue
 			}
-			if target == model.ClientDAE {
+			if target.Family() == model.FamilyDAE {
 				if _, mapped := generator.DAENativeRuleSet(scheme.ID, *resource); mapped {
 					continue
 				}
