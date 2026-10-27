@@ -24,7 +24,6 @@ type daePlan struct {
 }
 
 type daeNode struct {
-	tag string
 	uri string
 }
 
@@ -34,9 +33,6 @@ type daeGroup struct {
 	// filter lines are "or"-ed by dae and honk, which matches how schemes store
 	// node-name patterns.
 	filters []string
-	// tags enumerates inline node tags when a pattern cannot be expressed as a
-	// filter expression (single quotes or newlines inside the pattern).
-	tags []string
 }
 
 type daeSubscription struct {
@@ -228,10 +224,8 @@ func compileDAE(opts Options) (daePlan, PreflightResult) {
 			Message:  note,
 		})
 	}
-	nodeTags := make(map[string]string, len(nodes))
 	for i, node := range nodes {
 		name := nodeNames[i]
-		tag := fmt.Sprintf("node_%03d", i+1)
 		plan.preflight.Planned = append(plan.preflight.Planned, PreflightItem{Kind: "node", Name: name, Location: fmt.Sprintf("nodes[%d]", i)})
 		if node.Kind == model.KindShadowsocks && node.UDPRelayEnabled != nil && !*node.UDPRelayEnabled {
 			issue("node_udp_relay", fmt.Sprintf("nodes[%d]", i), fmt.Sprintf("节点 %q 禁用 UDP，但 dae URI 无法保留该设置", name))
@@ -242,8 +236,10 @@ func compileDAE(opts Options) (daePlan, PreflightResult) {
 			issue("node_uri", fmt.Sprintf("nodes[%d]", i), fmt.Sprintf("节点 %q 无法转换为 dae 支持的 URI", name))
 			continue
 		}
-		nodeTags[name] = tag
-		plan.nodes = append(plan.nodes, daeNode{tag: tag, uri: link})
+		// Inline nodes carry no tag on purpose: honk names a tagged node after its
+		// tag, while dae always uses the link's own name. Untagged entries keep the
+		// airport name on both cores, so `name(regex:)` filters agree.
+		plan.nodes = append(plan.nodes, daeNode{uri: link})
 	}
 	if len(nodes) == 0 && len(plan.subscriptions) == 0 {
 		issue("nodes_empty", "nodes", "至少需要一个已选择的节点")
@@ -278,9 +274,8 @@ func compileDAE(opts Options) (daePlan, PreflightResult) {
 		}
 		planGroup := daeGroup{tag: groupTags[group.Name]}
 		matchedAny := false
-		// filterSafe stays true while every member pattern can be rendered as a
-		// dae `filter:` expression instead of an enumerated tag list.
-		filterSafe := true
+		// matchesAll tracks whether every available node is a member, so the filter
+		// line can be dropped entirely (dae treats a filterless group that way).
 		matchesAll := true
 		for j, member := range group.Members {
 			location := fmt.Sprintf("groups[%d].members[%d]", i, j)
@@ -300,9 +295,6 @@ func compileDAE(opts Options) (daePlan, PreflightResult) {
 					continue
 				}
 				matched = true
-				if tag := nodeTags[name]; tag != "" {
-					planGroup.tags = append(planGroup.tags, tag)
-				}
 			}
 			if !matched {
 				issue("group_empty", location, fmt.Sprintf("策略组 %q 的节点过滤条件没有匹配已选择节点", group.Name))
@@ -312,29 +304,21 @@ func compileDAE(opts Options) (daePlan, PreflightResult) {
 			if !hitsAll {
 				matchesAll = false
 			}
-			if expr, ok := daeGroupFilter(member); ok {
-				planGroup.filters = append(planGroup.filters, expr)
-			} else {
-				filterSafe = false
+			expr, ok := daeGroupFilter(member)
+			if !ok {
+				issue("group_filter", location, fmt.Sprintf("策略组 %q 的节点过滤条件无法写成 dae filter", group.Name))
+				continue
 			}
+			planGroup.filters = append(planGroup.filters, expr)
 		}
 		if !matchedAny {
 			issue("group_empty", fmt.Sprintf("groups[%d]", i), fmt.Sprintf("策略组 %q 没有可用节点", group.Name))
 			continue
 		}
-		switch {
-		case matchesAll:
+		if matchesAll {
 			// A group that matches every available node needs no filter at all: dae
 			// treats a filterless group as "all nodes", subscriptions included.
-			planGroup.tags, planGroup.filters = nil, nil
-		case filterSafe && len(planGroup.filters) > 0:
-			planGroup.tags = nil
-		default:
 			planGroup.filters = nil
-			if len(planGroup.tags) == 0 {
-				issue("group_filter", fmt.Sprintf("groups[%d]", i), fmt.Sprintf("策略组 %q 的成员全部来自订阅，但其节点过滤条件无法写成 dae filter", group.Name))
-				continue
-			}
 		}
 		plan.groups = append(plan.groups, planGroup)
 	}
@@ -885,7 +869,7 @@ func renderDAE(plan daePlan, honkVariant bool) string {
 	if len(plan.nodes) > 0 {
 		b.WriteString("node {\n")
 		for _, node := range plan.nodes {
-			b.WriteString("    " + node.tag + ": '" + node.uri + "'\n")
+			b.WriteString("    '" + node.uri + "'\n")
 		}
 		b.WriteString("}\n\n")
 	}
@@ -895,9 +879,6 @@ func renderDAE(plan daePlan, honkVariant bool) string {
 			b.WriteString("    " + group.tag + " {\n")
 			for _, filter := range group.filters {
 				b.WriteString("        filter: " + filter + "\n")
-			}
-			if len(group.filters) == 0 && len(group.tags) > 0 {
-				b.WriteString("        filter: name(" + strings.Join(group.tags, ", ") + ")\n")
 			}
 			b.WriteString("        policy: min_moving_avg\n")
 			b.WriteString("    }\n")
