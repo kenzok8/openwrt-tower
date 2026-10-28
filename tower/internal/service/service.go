@@ -55,7 +55,9 @@ const maxRuleSetBytes = 8 << 20
 // soon as it opens, so a preflight gets a short leash and fails with a hint instead
 // of holding the admin session; the explicit export action may take much longer.
 const (
-	rulePreflightBudget = 60 * time.Second
+	// A preflight runs on page open and on every selection change, and uhttpd only
+	// serves three script requests at a time, so it must never sit on downloads.
+	rulePreflightBudget = 10 * time.Second
 	ruleExportBudget    = 10 * time.Minute
 )
 
