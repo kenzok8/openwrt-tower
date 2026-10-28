@@ -405,7 +405,13 @@ func RuleSetNeedsLines(target model.ClientTarget, resource model.RuleSchemeRuleS
 			// Clashoo keeps its own inline-source branch; let it decide.
 			return true
 		}
-		return hasSingBoxSourceURL(resource)
+		if _, _, mapped := mapSingBoxMRS(resource); mapped && singBoxMRSMappingAllowed(target) {
+			// Mapped MRS becomes a remote .srs link, so its content is not needed.
+			return false
+		}
+		// Everything else is either inlined (text/yaml lists) or has to be inspected
+		// to tell a sing-box source from a plain list.
+		return true
 	default:
 		return true
 	}

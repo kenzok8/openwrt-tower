@@ -57,7 +57,9 @@ const maxRuleSetBytes = 8 << 20
 const (
 	// A preflight runs on page open and on every selection change, and uhttpd only
 	// serves three script requests at a time, so it must never sit on downloads.
-	rulePreflightBudget = 10 * time.Second
+	// The preflight is only a hint: keep it cheap and let the export (ten minutes)
+	// download whatever a cold cache is missing.
+	rulePreflightBudget = 8 * time.Second
 	ruleExportBudget    = 10 * time.Minute
 )
 
