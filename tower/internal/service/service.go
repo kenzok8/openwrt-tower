@@ -609,6 +609,10 @@ func (s *Service) exportOptionsWithServiceRegions(target model.ClientTarget, pro
 					continue
 				}
 			}
+			// 保持远程链接的目标不需要规则集内容，跳过以免每个规则集都白等一次网络。
+			if !generator.RuleSetNeedsLines(target, *resource, preferRuleSets) {
+				continue
+			}
 			// 读取顺序按代价排：缓存 → 随包分发的本地列表 → 网络（直连失败会走镜像）。
 			// 本地列表免费且离线可用，放在网络之前可以避免每个规则集都先等一次超时。
 			if cached, ok := s.ruleSourceLinesCached(resource.URL, maxRuleSetBytes); ok {

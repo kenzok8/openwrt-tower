@@ -667,6 +667,12 @@ return view.extend({
 
 		function refreshSchemeCompatibility(target, ids, selectedScheme) {
 			var epoch = ++schemeCompatEpoch;
+			// dae / honk 的方案已经由白名单筛过，且预检需要下载规则集内容：逐方案探测
+			// 只会在冷缓存时把它们全部标成不可用。这里只保留当前方案，交给生成时校验。
+			if (target === 'dae-config' || target === 'honk-config') {
+				schemeCompatibilityNote.textContent = '';
+				return Promise.resolve();
+			}
 			var options = Array.prototype.slice.call(schemeSelect.options).filter(function(option) {
 				return !(option.value && schemeTargets[option.value] && schemeTargets[option.value] !== target) &&
 					!(target === 'dae-config' && option.value && !daeSchemePolicies[option.value]);
