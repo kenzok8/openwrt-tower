@@ -24,7 +24,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
           go-version-file: tower/go.mod
@@ -77,9 +77,9 @@ jobs:
           - sdk: "25.12"
             arch: mips_4kec
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Prepare SDK action
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: kenzok8/gh-action-sdk
           ref: 44f98c51d04aebd1aa79fe4f603559c1ec2085da
@@ -156,7 +156,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Download all package artifacts
