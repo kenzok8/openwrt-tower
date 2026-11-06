@@ -5,9 +5,18 @@
 <p align="center"><strong>OpenWrt 配置工作台：整理订阅与节点，选择分流规则，导出给 OpenClash / Nikki / Clashoo / Momo。</strong></p>
 
 <div align="center">
-  <a href="https://github.com/kenzok8/openwrt-tower"><img alt="GitHub stars" src="https://img.shields.io/github/stars/kenzok8/openwrt-tower?style=flat-square"></a>
+  <a href="https://github.com/kenzok8/openwrt-tower/releases"><img alt="Release" src="https://img.shields.io/github/v/release/kenzok8/openwrt-tower?style=flat-square&label=release"></a>
+  <a href="https://github.com/kenzok8/openwrt-tower/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/kenzok8/openwrt-tower/total?style=flat-square&label=downloads"></a>
+  <a href="https://github.com/kenzok8/openwrt-tower/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/kenzok8/openwrt-tower/main?style=flat-square"></a>
+  <a href="https://github.com/kenzok8/openwrt-tower/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/kenzok8/openwrt-tower?style=flat-square"></a>
   <a href="https://github.com/kenzok8/openwrt-tower/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/kenzok8/openwrt-tower?style=flat-square"></a>
 </div>
+
+<p align="center">
+  <a href="https://kenzok8.github.io/openwrt-tower/">📖 在线使用文档</a> ·
+  <a href="https://github.com/kenzok8/openwrt-tower/releases">📦 下载安装</a> ·
+  <a href="https://github.com/kenzok8/openwrt-tower/issues">💬 问题反馈</a>
+</p>
 
 ---
 
