@@ -3,6 +3,8 @@
   "subtitle": "OpenWrt 配置工作台",
   "description": "整理订阅与节点，选择分流规则，导出给 OpenClash / Nikki / Clashoo / Momo。",
   "base_url": "https://kenzok8.github.io/openwrt-tower/",
+  "repo": "kenzok8/openwrt-tower",
+  "license": "MIT",
   "version_file": "luci-app-tower/Makefile",
   "nav": [
     {

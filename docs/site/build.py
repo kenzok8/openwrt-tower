@@ -55,7 +55,7 @@ LAYOUT = Template(
         <span aria-hidden="true">⌕</span> 搜索文档 <kbd>Ctrl K</kbd>
       </button>
       <nav class="header-links">
-        <a href="https://github.com/kenzok8/openwrt-tower">GitHub ↗</a>
+        <a href="https://github.com/$repo">GitHub ↗</a>
       </nav>
       <button class="icon-button" id="theme-toggle" type="button" aria-label="切换深浅主题" aria-pressed="false">◐</button>
       <button class="icon-button menu-button" id="menu-toggle" type="button" aria-controls="sidebar" aria-expanded="false">目录</button>
@@ -70,8 +70,8 @@ $sidebar
       <main id="content" class="content">
 $content
         <footer class="page-footer">
-          <a href="https://github.com/kenzok8/openwrt-tower/blob/main/docs/site/content/$page">编辑此页</a>
-          <span>Tower 文档 · MIT</span>
+          <a href="https://github.com/$repo/blob/main/docs/site/content/$page">编辑此页</a>
+          <span>$site 文档 · $license</span>
         </footer>
       </main>
     </div>
@@ -220,6 +220,8 @@ def build(site: dict, output: Path, check_only: bool) -> list[str]:
             description=html.escape(item.get("summary", site["description"])),
             canonical=site["base_url"] + page,
             page=page.removesuffix(".html"),
+            repo=site["repo"],
+            license=site["license"],
             site=html.escape(site["title"]),
             subtitle=html.escape(site["subtitle"]),
             sidebar="\n".join(sidebar),
@@ -241,6 +243,8 @@ def build(site: dict, output: Path, check_only: bool) -> list[str]:
             description="页面不存在",
             canonical=site["base_url"],
             page="404",
+            repo=site["repo"],
+            license=site["license"],
             site=html.escape(site["title"]),
             subtitle=html.escape(site["subtitle"]),
             sidebar='        <nav aria-label="文档目录"><a href="index.html">返回文档首页</a></nav>',
