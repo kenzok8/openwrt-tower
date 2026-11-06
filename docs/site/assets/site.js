@@ -36,6 +36,21 @@
     }
   });
 
+
+  // ── 阅读进度 ──
+  var progress = document.getElementById('progress');
+  if (progress) {
+    var paint = function () {
+      var doc = document.documentElement;
+      var total = doc.scrollHeight - doc.clientHeight;
+      var ratio = total > 0 ? doc.scrollTop / total : 0;
+      progress.style.width = (Math.min(1, Math.max(0, ratio)) * 100).toFixed(2) + '%';
+    };
+    document.addEventListener('scroll', paint, { passive: true });
+    window.addEventListener('resize', paint);
+    paint();
+  }
+
   // ── 站内搜索 ──
   var overlay = document.getElementById('search');
   var input = document.getElementById('search-input');

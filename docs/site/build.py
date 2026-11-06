@@ -46,30 +46,29 @@ LAYOUT = Template(
   </head>
   <body data-page="$page">
     <a class="skip-link" href="#content">跳到正文</a>
-    <header class="head">
+    <div class="progress" id="progress" aria-hidden="true"></div>
+    <header class="topbar">
       <a class="brand" href="index.html">
-        <img src="assets/logo.png" width="30" height="30" alt="" />
+        <img src="assets/logo.png" width="32" height="32" alt="" />
         <span class="brand-text">$site<em>$subtitle</em></span>
       </a>
-      <span class="head-ver">$version</span>
-      <div class="head-actions">
-        <button class="search-trigger" type="button" data-search-open><span aria-hidden="true">⌕</span> 搜索文档</button>
+      <span class="pill">$version</span>
+      <div class="topbar-actions">
+        <button class="search-trigger" type="button" data-search-open><span aria-hidden="true">⌕</span> 搜索</button>
         <a class="gh-link" href="https://github.com/$repo">GitHub ↗</a>
         <button class="icon-button" id="theme-toggle" type="button" aria-label="切换深浅主题" aria-pressed="false">◐</button>
         <button class="icon-button menu-button" id="menu-toggle" type="button" aria-controls="sidebar" aria-expanded="false">目录</button>
       </div>
     </header>
-    <div class="board">
-      <aside class="index" id="sidebar">
-        <p class="index-title">目录 / INDEX</p>
+    <div class="workbench">
+      <aside class="menu" id="sidebar">
         <nav aria-label="文档目录">$sidebar</nav>
       </aside>
-      <main id="content" class="sheet">
+      <main id="content" class="paper">
 $content
         <footer class="page-footer">
           <a href="https://github.com/$repo/blob/main/docs/site/content/$page">编辑此页</a>
           <span>$site 文档 · $license</span>
-          <span class="page-coord">$page</span>
         </footer>
       </main>
     </div>
@@ -246,7 +245,7 @@ def build(site: dict, output: Path, check_only: bool) -> list[str]:
             license=site["license"],
             site=html.escape(site["title"]),
             subtitle=html.escape(site["subtitle"]),
-            sidebar='<a href="index.html">返回文档首页</a>',
+            sidebar='        <p class="nav-label"><i>↩</i>离开目录</p>\n        <a href="index.html">返回文档首页</a>',
             content='        <h1>页面不存在</h1>\n        <p>链接可能已经调整，<a href="index.html">回到文档首页</a>。</p>',
             version="",
         ),
