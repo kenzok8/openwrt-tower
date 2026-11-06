@@ -132,7 +132,7 @@ jobs:
             }
           done
       - name: Upload packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tower-${{ matrix.arch }}-sdk${{ matrix.sdk }}
           path: |
@@ -142,7 +142,7 @@ jobs:
           compression-level: 0
       - name: Upload build logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: logs-${{ matrix.arch }}-sdk${{ matrix.sdk }}
           path: |
