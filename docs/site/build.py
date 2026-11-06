@@ -46,32 +46,30 @@ LAYOUT = Template(
   </head>
   <body data-page="$page">
     <a class="skip-link" href="#content">跳到正文</a>
-    <header class="header">
+    <header class="head">
       <a class="brand" href="index.html">
-        <img src="assets/logo.png" width="28" height="28" alt="" />
-        <span>$site<small>$subtitle</small></span>
+        <img src="assets/logo.png" width="30" height="30" alt="" />
+        <span class="brand-text">$site<em>$subtitle</em></span>
       </a>
-      <button class="search-trigger" type="button" data-search-open>
-        <span aria-hidden="true">⌕</span> 搜索文档 <kbd>Ctrl K</kbd>
-      </button>
-      <nav class="header-links">
-        <a href="https://github.com/$repo">GitHub ↗</a>
-      </nav>
-      <button class="icon-button" id="theme-toggle" type="button" aria-label="切换深浅主题" aria-pressed="false">◐</button>
-      <button class="icon-button menu-button" id="menu-toggle" type="button" aria-controls="sidebar" aria-expanded="false">目录</button>
+      <span class="head-ver">$version</span>
+      <div class="head-actions">
+        <button class="search-trigger" type="button" data-search-open><span aria-hidden="true">⌕</span> 搜索文档</button>
+        <a class="gh-link" href="https://github.com/$repo">GitHub ↗</a>
+        <button class="icon-button" id="theme-toggle" type="button" aria-label="切换深浅主题" aria-pressed="false">◐</button>
+        <button class="icon-button menu-button" id="menu-toggle" type="button" aria-controls="sidebar" aria-expanded="false">目录</button>
+      </div>
     </header>
-    <div class="layout">
-      <aside class="sidebar" id="sidebar">
-$sidebar
-        <div class="sidebar-footer">
-          <span class="version">$version</span>
-        </div>
+    <div class="board">
+      <aside class="index" id="sidebar">
+        <p class="index-title">目录 / INDEX</p>
+        <nav aria-label="文档目录">$sidebar</nav>
       </aside>
-      <main id="content" class="content">
+      <main id="content" class="sheet">
 $content
         <footer class="page-footer">
           <a href="https://github.com/$repo/blob/main/docs/site/content/$page">编辑此页</a>
           <span>$site 文档 · $license</span>
+          <span class="page-coord">$page</span>
         </footer>
       </main>
     </div>
@@ -205,13 +203,14 @@ def build(site: dict, output: Path, check_only: bool) -> list[str]:
 
     for item in pages(site):
         page = item["page"]
-        sidebar = ['        <nav aria-label="文档目录">']
+        sidebar = []
+        group_no = 0
         for group in site["nav"]:
-            sidebar.append(f'          <p class="nav-label">{html.escape(group["group"])}</p>')
+            group_no += 1
+            sidebar.append(f'          <p class="nav-label"><i>{group_no:02d}</i>{html.escape(group["group"])}</p>')
             for entry in group["items"]:
                 current = ' aria-current="page"' if entry["page"] == page else ""
                 sidebar.append(f'          <a href="{entry["page"]}"{current}>{html.escape(entry["title"])}</a>')
-        sidebar.append("        </nav>")
 
         title = site["title"] if page == "index.html" else f'{item["title"]} · {site["title"]}'
         document = LAYOUT.substitute(
@@ -247,7 +246,7 @@ def build(site: dict, output: Path, check_only: bool) -> list[str]:
             license=site["license"],
             site=html.escape(site["title"]),
             subtitle=html.escape(site["subtitle"]),
-            sidebar='        <nav aria-label="文档目录"><a href="index.html">返回文档首页</a></nav>',
+            sidebar='<a href="index.html">返回文档首页</a>',
             content='        <h1>页面不存在</h1>\n        <p>链接可能已经调整，<a href="index.html">回到文档首页</a>。</p>',
             version="",
         ),
