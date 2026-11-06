@@ -121,6 +121,16 @@ def collect_ids(body: str, page: str) -> set[str]:
     return ids
 
 
+def check_structure(body: str, page: str) -> list[str]:
+    """Pages 部署在 /openwrt-tower/ 子路径下，绝对路径会 404；正文必须以 h1 开头。"""
+    problems = []
+    if not body.lstrip().startswith("<h1"):
+        problems.append(f"{page}: 正文应以 <h1> 开头")
+    if 'href="/' in body or 'src="/' in body:
+        problems.append(f"{page}: 出现以 / 开头的绝对路径（Pages 部署在子路径下会 404）")
+    return problems
+
+
 def check_links(body: str, page: str, known: set[str], assets: set[str]) -> list[str]:
     problems = []
     for raw in LINK_ATTR.findall(body):
@@ -157,6 +167,7 @@ def build(site: dict, output: Path, check_only: bool) -> list[str]:
             continue
         body = source.read_text(encoding="utf-8")
         ids = collect_ids(body, page)
+        errors.extend(check_structure(body, page))
         errors.extend(check_links(body, page, known, assets))
 
         headings = []

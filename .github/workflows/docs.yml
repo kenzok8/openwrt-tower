@@ -5,13 +5,11 @@ on:
     branches: [main]
     paths:
       - 'docs/site/**'
-      - 'tests/docs/**'
       - '.github/workflows/docs.yml'
       - 'luci-app-tower/Makefile'
   pull_request:
     paths:
       - 'docs/site/**'
-      - 'tests/docs/**'
       - '.github/workflows/docs.yml'
       - 'luci-app-tower/Makefile'
   workflow_dispatch:
@@ -33,7 +31,7 @@ jobs:
           python-version: '3.12'
       - name: Check and build the handbook
         run: |
-          python3 -m unittest discover -s tests/docs -t . -p 'test_*.py'
+          python3 docs/site/build.py --check
           python3 docs/site/build.py --output .build/docs-site
       - name: Upload the generated handbook
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

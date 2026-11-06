@@ -15,10 +15,9 @@ python3 -m http.server 4173 --directory .build/docs-site
 
 ```sh
 python3 docs/site/build.py --check
-python3 -m unittest discover -s tests/docs -t . -p 'test_*.py'
 ```
 
-`--check` 会拦下四类问题：锚点 id 重复、站内链接指向不存在的文件、导航里漏登的正文页、`h2`/`h3` 缺 `id`。
+`--check` 会拦下这几类问题：锚点 id 重复、站内链接指向不存在的文件、导航里漏登的正文页、`h2`/`h3` 缺 `id`、正文没有以 `<h1>` 开头、出现以 `/` 开头的绝对路径。
 
 ## 加一页
 
@@ -28,6 +27,6 @@ python3 -m unittest discover -s tests/docs -t . -p 'test_*.py'
 
 ## 发布
 
-`.github/workflows/docs.yml` 在 `main` 分支上跑测试、构建并发布到 GitHub Pages。
+`.github/workflows/docs.yml` 在 `main` 分支上跑自检、构建并发布到 GitHub Pages。
 
 前提：仓库 Settings → Pages → Source 选择 **GitHub Actions**。没有这一步，`deploy` 任务会因为拿不到 Pages 环境而失败。
