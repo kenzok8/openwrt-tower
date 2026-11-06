@@ -2,7 +2,7 @@
 
 <h1 align="center">Tower</h1>
 
-<p align="center"><strong>OpenWrt 配置工作台：整理订阅与节点，选择分流规则，导出给 OpenClash / Nikki / Clashoo / Momo。</strong></p>
+<p align="center"><strong>OpenWrt 配置工作台：整理订阅与节点，选择分流规则，导出给 OpenClash / Nikki / Clashoo / Momo/ dae / honk。</strong></p>
 
 <div align="center">
   <a href="https://github.com/kenzok8/openwrt-tower/releases"><img alt="Release" src="https://img.shields.io/github/v/release/kenzok8/openwrt-tower?style=flat-square&label=release"></a>
