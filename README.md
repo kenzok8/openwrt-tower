@@ -12,11 +12,6 @@
   <a href="https://github.com/kenzok8/openwrt-tower/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/kenzok8/openwrt-tower?style=flat-square"></a>
 </div>
 
-<p align="center">
-  <a href="https://kenzok8.github.io/openwrt-tower/">📖 在线使用文档</a> ·
-  <a href="https://github.com/kenzok8/openwrt-tower/releases">📦 下载安装</a> ·
-  <a href="https://github.com/kenzok8/openwrt-tower/issues">💬 问题反馈</a>
-</p>
 
 ---
 
