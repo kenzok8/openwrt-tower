@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/site/assets/logo.png" width="112" height="112" alt="Tower"></p>
+<p align="center"><img src="docs/site/assets/logo.png" width="96" height="96" alt="Tower"></p>
 
 <h1 align="center">Tower</h1>
 
