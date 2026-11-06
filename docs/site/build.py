@@ -39,7 +39,8 @@ LAYOUT = Template(
     <title>$title$title_suffix</title>
     <meta name="description" content="$description" />
     <link rel="canonical" href="$canonical" />
-    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="assets/logo.png" type="image/png" />
+    <link rel="apple-touch-icon" href="assets/logo.png" />
     <link rel="stylesheet" href="assets/site.css" />
     <script src="assets/site.js" defer></script>
   </head>
@@ -47,7 +48,7 @@ LAYOUT = Template(
     <a class="skip-link" href="#content">跳到正文</a>
     <header class="header">
       <a class="brand" href="index.html">
-        <img src="assets/icon.svg" width="28" height="28" alt="" />
+        <img src="assets/logo.png" width="28" height="28" alt="" />
         <span>$site<small>$subtitle</small></span>
       </a>
       <button class="search-trigger" type="button" data-search-open>
@@ -122,10 +123,14 @@ def collect_ids(body: str, page: str) -> set[str]:
 
 
 def check_structure(body: str, page: str) -> list[str]:
-    """Pages 部署在 /openwrt-tower/ 子路径下，绝对路径会 404；正文必须以 h1 开头。"""
+    """Pages 部署在 /openwrt-tower/ 子路径下，绝对路径会 404；正文要在第一个 h2 之前出现 h1。"""
     problems = []
-    if not body.lstrip().startswith("<h1"):
-        problems.append(f"{page}: 正文应以 <h1> 开头")
+    h1 = body.find("<h1")
+    h2 = body.find("<h2")
+    if h1 < 0:
+        problems.append(f"{page}: 正文缺少 <h1>")
+    elif h2 >= 0 and h2 < h1:
+        problems.append(f"{page}: <h1> 必须出现在第一个 <h2> 之前")
     if 'href="/' in body or 'src="/' in body:
         problems.append(f"{page}: 出现以 / 开头的绝对路径（Pages 部署在子路径下会 404）")
     return problems

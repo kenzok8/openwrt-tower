@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/site/assets/logo.png" width="112" height="112" alt="Tower"></p>
+
 <h1 align="center">Tower</h1>
 
 <p align="center"><strong>OpenWrt 配置工作台：整理订阅与节点，选择分流规则，导出给 OpenClash / Nikki / Clashoo / Momo。</strong></p>

@@ -226,6 +226,9 @@ a:hover { text-decoration: underline; }
 }
 .content hr { margin: 28px 0; border: 0; border-top: 1px solid var(--line); }
 
+.hero { margin: 0 0 6px; }
+.hero img { display: block; }
+
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 18px 0; }
 .card {
   display: block;
