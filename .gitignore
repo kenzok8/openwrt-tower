@@ -12,3 +12,5 @@ tower/tower
 *.ipk
 .DS_Store
 *_test.go
+.build/
+__pycache__/

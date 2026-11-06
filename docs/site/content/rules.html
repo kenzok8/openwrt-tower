@@ -1,0 +1,42 @@
+<h1>规则方案</h1>
+
+<p>规则方案决定「哪些流量走代理、哪些直连、分到哪个策略组」。Tower 只提供规则，不附带节点。</p>
+
+<h2 id="builtin">内置方案</h2>
+
+<p>开箱可用三套，选一套就能导出：</p>
+
+<ul>
+  <li><strong>ACL4SSR</strong> —— 覆盖面广，规则组多，适合大多数人</li>
+  <li><strong>Self-Configuration</strong> —— 分组精简，适合想要少而快的场景</li>
+  <li><strong>kenzok8</strong> —— 国内常用站点与常见服务的折中配置</li>
+</ul>
+
+<h2 id="import">导入自己的规则</h2>
+
+<p>「规则」页可以给自定义方案命名后导入，支持三种来源：</p>
+
+<table>
+  <tr><th>格式</th><th>说明</th></tr>
+  <tr><td>Clash YAML</td><td>提取 <code>proxy-groups</code> 与 <code>rules</code>，忽略其中的 <code>proxies</code></td></tr>
+  <tr><td>subconverter <code>.ini</code></td><td>按分组与规则段落解析</td></tr>
+  <tr><td>Surge 配置</td><td>按 <code>[Proxy Group]</code> 和 <code>[Rule]</code> 段落解析</td></tr>
+</table>
+
+<p>来源可以是 HTTPS 链接、粘贴文本或本地文件。导入后的方案会出现在方案列表里，和内置方案一样可以选中导出。</p>
+
+<blockquote>导入规则方案不会导入节点。原文件里即使带 <code>proxies</code>，也只会被忽略。</blockquote>
+
+<h2 id="rule-cache">远程规则集缓存</h2>
+
+<p>方案里引用的 HTTPS 规则集会在刷新时下载，并缓存在 <code>/etc/tower/rule-cache/</code>。</p>
+
+<ul>
+  <li>缓存在本地，断网时导出仍可用</li>
+  <li>规则集更新后需要手动刷新方案，Tower 不会后台偷偷重下</li>
+  <li>缓存文件可以随时删掉，下次刷新会重新拉</li>
+</ul>
+
+<h2 id="limits">边界</h2>
+
+<p>规则方案目前面向 Mihomo 系客户端（OpenClash、Nikki、Clashoo Mihomo）和 Surge 系。导出 sing-box 目标时，规则只能做基础映射 —— 详见<a href="export.html#boundaries">导出边界</a>。</p>

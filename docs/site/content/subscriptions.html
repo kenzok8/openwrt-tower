@@ -1,0 +1,43 @@
+<h1>订阅与节点</h1>
+
+<p>「订阅」页是 Tower 的数据入口：机场订阅和自建节点都从这里进来，后续的规则、导出都基于这里的节点集合。</p>
+
+<h2 id="add-subscription">添加订阅</h2>
+
+<p>填名称和订阅链接即可，User-Agent 按机场要求选，默认跟随常见客户端。</p>
+
+<ul>
+  <li>支持 Clash YAML、Base64、纯链接列表等常见格式</li>
+  <li>拉取成功后会显示节点数、机场流量和到期时间（机场在响应头里给了才有）</li>
+  <li>链接里的凭据只保存在 <code>/etc/tower/tower.json</code></li>
+</ul>
+
+<h2 id="import-nodes">导入节点</h2>
+
+<p>展开「导入节点」可以直接粘贴文本，适合临时加几个自建节点：</p>
+
+<ul>
+  <li>支持 Clash YAML、Surge INI、Base64，以及分享链接（<code>ss://</code>、<code>vmess://</code>、<code>vless://</code>、<code>tuic://</code> 等）</li>
+  <li>导入的节点会单独出现在列表里，和机场节点分开标记</li>
+  <li>只导入节点，不动规则方案</li>
+</ul>
+
+<h2 id="protocols">支持的协议</h2>
+
+<p>Shadowsocks、ShadowsocksR、VMess、VLESS、Trojan、Hysteria、Hysteria 2、TUIC、WireGuard、AnyTLS、Snell、SOCKS5、HTTP。</p>
+
+<blockquote>协议可用不代表目标客户端一定支持。不同客户端支持的参数不一样，导出时以「兼容提示」为准。</blockquote>
+
+<h2 id="refresh">更新与删除</h2>
+
+<ul>
+  <li><strong>更新订阅</strong>：重新拉取订阅内容，节点按名称匹配更新，手工改过的自有节点不受影响</li>
+  <li><strong>删除订阅</strong>：连带删掉它带来的节点；自有节点不受影响</li>
+  <li><strong>编辑/删除单个节点</strong>：只对自有节点开放，机场节点跟着订阅走</li>
+</ul>
+
+<h2 id="select-nodes">按需筛选</h2>
+
+<p>导出前可以按订阅来源、协议或单个节点勾选，机场节点和自建节点能自由组合。这样同一个订阅里的部分节点也能单独拿去用。</p>
+
+<p>筛完直接去<a href="export.html">导出配置</a>。</p>

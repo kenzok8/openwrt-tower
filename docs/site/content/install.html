@@ -1,0 +1,65 @@
+<h1>安装与升级</h1>
+
+<p>Tower 由两个包组成：<code>tower</code> 是后端程序和内置规则，<code>luci-app-tower</code> 是 LuCI 界面。两个都装完，才能在「服务 → Tower」里看到入口。</p>
+
+<h2 id="one-click">一键安装</h2>
+
+<p>在路由器上以 <code>root</code> 执行。脚本会接入现有的 dllkids 软件源，再按固件版本用 <code>apk</code> 或 <code>opkg</code> 装包：</p>
+
+<pre><code>wget -O - https://raw.githubusercontent.com/kenzok8/openwrt-tower/main/scripts/install.sh | sh</code></pre>
+
+<p>安装完成后刷新 LuCI 页面即可。如果脚本报找不到源，检查设备能不能访问 <code>down.dllkids.xyz</code>。</p>
+
+<h2 id="feed">通过软件源安装</h2>
+
+<p>已经接入该软件源的设备，不需要再跑脚本：</p>
+
+<pre><code># 25.12 / apk
+apk update &amp;&amp; apk add tower luci-app-tower
+
+# 24.10 / opkg
+opkg update &amp;&amp; opkg install tower luci-app-tower</code></pre>
+
+<h2 id="sdk">用 SDK 自己编译</h2>
+
+<p>把仓库当作 <code>src-link</code> feed 接入已配置好 Go 环境的 SDK：</p>
+
+<pre><code>echo 'src-link tower /absolute/path/to/openwrt-tower' &gt;&gt; feeds.conf
+./scripts/feeds update -a
+./scripts/feeds install -p tower tower luci-app-tower
+make package/tower/compile V=s
+make package/luci-app-tower/compile V=s</code></pre>
+
+<p><code>tower</code> 是 Go 程序，交叉编译需要 SDK 自带 Go 工具链；<code>luci-app-tower</code> 是纯 LuCI 资源，架构无关。</p>
+
+<h2 id="release">从 Release 手动安装</h2>
+
+<p>到 <a href="https://github.com/kenzok8/openwrt-tower/releases">Releases</a> 下载与你的系统版本、架构匹配的两个包：</p>
+
+<ul>
+  <li>24.10 用 <code>.ipk</code>，<code>opkg install</code></li>
+  <li>25.12 用 <code>.apk</code>，需要 <code>apk add --allow-untrusted</code>（Release 的 apk 未签名）</li>
+</ul>
+
+<p>设备上已有可信软件源时，优先走软件源安装，升级能跟上源里的版本。</p>
+
+<h2 id="upgrade">升级与备份</h2>
+
+<p>升级只覆盖程序和界面，你的数据原样保留：</p>
+
+<ul>
+  <li><code>/etc/config/tower</code> —— UCI 配置，属于 conffiles，升级不会覆盖你的修改</li>
+  <li><code>/etc/tower/tower.json</code> —— 订阅、节点、规则方案的私有状态</li>
+  <li><code>/etc/tower/rule-cache/</code> —— 远程规则集缓存</li>
+</ul>
+
+<p>升级前建议先备份这四处（含 <code>/etc/config/tower</code>）。回滚时把两个包降到旧版本，再把备份放回去即可。</p>
+
+<blockquote>升级后如果界面还是旧样子，浏览器强制刷新一次；LuCI 会缓存静态资源。</blockquote>
+
+<h2 id="uninstall">卸载</h2>
+
+<pre><code>apk del luci-app-tower tower        # 25.12
+opkg remove luci-app-tower tower    # 24.10</code></pre>
+
+<p>卸载不会自动删 <code>/etc/tower/</code>。确认不再使用后手动删除，否则下次安装会直接接上旧数据。</p>

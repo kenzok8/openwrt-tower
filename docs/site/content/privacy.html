@@ -1,0 +1,40 @@
+<h1>隐私与数据</h1>
+
+<p>Tower 的所有处理都在路由器本地完成：订阅解析、规则合并、配置生成都不经过第三方服务。</p>
+
+<h2 id="where">数据放在哪</h2>
+
+<table>
+  <tr><th>路径</th><th>内容</th></tr>
+  <tr><td><code>/etc/config/tower</code></td><td>UCI 配置：监听端口、分享开关等，属于包 conffiles</td></tr>
+  <tr><td><code>/etc/tower/tower.json</code></td><td>订阅链接、节点、规则方案、分享 token 等私有状态</td></tr>
+  <tr><td><code>/etc/tower/rule-cache/</code></td><td>下载回来的规则集缓存，可随时删除</td></tr>
+</table>
+
+<p>这些文件只在本机读走，Tower 不向外发送。备份时注意：<code>tower.json</code> 里有订阅凭据和节点密码，别随手贴到公开的地方。</p>
+
+<h2 id="network">会连哪些地址</h2>
+
+<ul>
+  <li>你自己填的订阅地址和规则集地址</li>
+  <li>内置方案里引用的公开规则集（首次刷新时下载，之后走缓存）</li>
+  <li>更新检查会访问 GitHub Releases（只读取版本信息）</li>
+</ul>
+
+<p>除此之外没有遥测、没有统计上报、没有「云端转换」。</p>
+
+<h2 id="local-share">本机订阅的安全边界</h2>
+
+<ul>
+  <li>后端只监听 <code>127.0.0.1</code>，启动时如果监听地址不是回环，程序会直接退出</li>
+  <li>分享地址带随机 token，可以随时吊销</li>
+  <li>响应带 <code>Cache-Control: no-store</code> 和 <code>X-Content-Type-Options: nosniff</code></li>
+  <li>管理操作走 LuCI 的 rpcd，不经过这个 HTTP 服务</li>
+</ul>
+
+<h2 id="cleanup">彻底清除</h2>
+
+<pre><code>apk del luci-app-tower tower          # 或 opkg remove
+rm -rf /etc/tower /etc/config/tower   # 数据要手动删</code></pre>
+
+<p>卸载脚本不会自动删 <code>/etc/tower/</code>，避免误删你的订阅。确认不再使用后再手动清理。</p>

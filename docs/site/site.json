@@ -1,0 +1,32 @@
+{
+  "title": "Tower",
+  "subtitle": "OpenWrt 配置工作台",
+  "description": "整理订阅与节点，选择分流规则，导出给 OpenClash / Nikki / Clashoo / Momo。",
+  "base_url": "https://kenzok8.github.io/openwrt-tower/",
+  "version_file": "luci-app-tower/Makefile",
+  "nav": [
+    {
+      "group": "开始使用",
+      "items": [
+        { "page": "index.html", "title": "概览" },
+        { "page": "install.html", "title": "安装与升级" }
+      ]
+    },
+    {
+      "group": "日常使用",
+      "items": [
+        { "page": "subscriptions.html", "title": "订阅与节点" },
+        { "page": "rules.html", "title": "规则方案" },
+        { "page": "export.html", "title": "导出配置" }
+      ]
+    },
+    {
+      "group": "参考",
+      "items": [
+        { "page": "privacy.html", "title": "隐私与数据" },
+        { "page": "troubleshooting.html", "title": "常见问题" },
+        { "page": "development.html", "title": "开发与命令" }
+      ]
+    }
+  ]
+}

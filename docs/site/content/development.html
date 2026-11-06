@@ -1,0 +1,58 @@
+<h1>开发与命令</h1>
+
+<p>Tower 的后端是一个 Go 程序，LuCI 前端通过 rpcd 调它的子命令。文档站本身也用同一套构建方式，见文末。</p>
+
+<h2 id="layout">目录结构</h2>
+
+<table>
+  <tr><th>路径</th><th>作用</th></tr>
+  <tr><td><code>tower/</code></td><td>Go 后端：解析、规则、生成、本机订阅服务</td></tr>
+  <tr><td><code>tower/cmd/tower/</code></td><td>入口：不带子命令是常驻服务，带子命令是 CLI</td></tr>
+  <tr><td><code>tower/internal/</code></td><td>api / generator / parser / rule / rules / service / store / model</td></tr>
+  <tr><td><code>luci-app-tower/</code></td><td>LuCI 界面与 rpcd 权限</td></tr>
+  <tr><td><code>docs/site/</code></td><td>本文件站：内容 + 构建脚本</td></tr>
+  <tr><td><code>scripts/install.sh</code></td><td>一键安装脚本</td></tr>
+</table>
+
+<h2 id="build">构建与测试</h2>
+
+<pre><code>cd tower
+go test ./...
+go vet ./...
+go build ./cmd/tower</code></pre>
+
+<p>改 LuCI 页面不需要编译，把文件放到设备的 <code>/www/luci-static/</code> 下就能验；改后端要重新编译 <code>tower</code> 包。</p>
+
+<h2 id="cli">命令行</h2>
+
+<p>后端自身带 CLI，LuCI 调的就是这些：</p>
+
+<table>
+  <tr><th>子命令</th><th>用途</th></tr>
+  <tr><td><code>subscriptions</code> / <code>refresh</code></td><td>列出订阅 / 刷新订阅</td></tr>
+  <tr><td><code>nodes</code> / <code>add</code> / <code>remove</code></td><td>列出节点 / 增删节点或订阅</td></tr>
+  <tr><td><code>update_node</code> / <code>remove_node</code></td><td>编辑、删除单个自有节点</td></tr>
+  <tr><td><code>import</code></td><td>导入规则方案</td></tr>
+  <tr><td><code>schemes</code> / <code>scheme</code> / <code>add_scheme</code></td><td>列出方案 / 查看 / 新增</td></tr>
+  <tr><td><code>refresh_scheme</code> / <code>rename_scheme</code> / <code>remove_scheme</code></td><td>刷新缓存 / 改名 / 删除方案</td></tr>
+  <tr><td><code>preflight_export</code></td><td>导出前预检：目标、协议、规则是否兼容</td></tr>
+  <tr><td><code>export_begin</code> / <code>export_read</code> / <code>export_discard</code></td><td>大配置分段读取，避免一次性占内存</td></tr>
+  <tr><td><code>export</code></td><td>一次性导出</td></tr>
+  <tr><td><code>links</code></td><td>输出纯节点链接</td></tr>
+  <tr><td><code>share_create</code> / <code>share_revoke</code></td><td>生成本机订阅地址 / 吊销</td></tr>
+  <tr><td><code>capabilities</code></td><td>输出各目标客户端的协议与规则支持矩阵</td></tr>
+</table>
+
+<p>数据目录默认 <code>/etc/tower</code>，服务端口默认 <code>127.0.0.1:7443</code>，都能用 <code>-data</code> / <code>-listen</code> 覆盖。</p>
+
+<h2 id="docs-site">维护这个文档站</h2>
+
+<p>内容在 <code>docs/site/content/</code>，每页只写正文片段，标题外壳和导航由构建脚本统一套上。</p>
+
+<pre><code>python3 docs/site/build.py            # 生成到 .build/docs-site
+python3 docs/site/build.py --check    # 只自检：锚点重复、站内死链、导航漏页
+python3 -m http.server 4173 --directory .build/docs-site</code></pre>
+
+<p>新增一页要做三件事：在 <code>docs/site/content/</code> 加 HTML、在 <code>docs/site/site.json</code> 的导航里登记、所有 <code>h2</code>/<code>h3</code> 都带 <code>id</code>。漏了任何一项，<code>--check</code> 会报错。</p>
+
+<p>推送后由 <code>.github/workflows/docs.yml</code> 校验并发布到 GitHub Pages。</p>

@@ -1,0 +1,49 @@
+<h1>常见问题</h1>
+
+<p>按「现象 → 先查什么」的顺序排。改动配置前建议先备份 <code>/etc/tower/tower.json</code>。</p>
+
+<h2 id="no-menu">装完了但 LuCI 里看不到 Tower</h2>
+
+<ul>
+  <li>确认两个包都装了：<code>apk list --installed | grep tower</code></li>
+  <li>清一次 LuCI 缓存：删除 <code>/tmp/luci-indexcache</code> 后刷新页面</li>
+  <li>确认当前用户有 <code>luci-app-tower</code> 的 ACL 权限</li>
+</ul>
+
+<h2 id="config-rejected">生成的配置导入后被插件拒绝</h2>
+
+<p>先看插件自己的日志，Tower 只保证格式对得上，不保证目标插件接受全部参数：</p>
+
+<ul>
+  <li>Mihomo 系：多半是某条规则集地址拉不到，或某个协议参数超出版本支持</li>
+  <li>sing-box：检查是否有「不支持的规则」提示，Tower 的规则方案还不能等价转成 sing-box 分流</li>
+  <li>dae / Honk：模板里的网卡名（如 <code>br-lan</code>）必须和设备实际网卡一致</li>
+</ul>
+
+<h2 id="local-sub-fail">本机订阅地址拉不到</h2>
+
+<ul>
+  <li>地址必须是 <code>http://127.0.0.1:7443/...</code>，换机器或换成 LAN IP 都不行，服务只监听回环</li>
+  <li>确认后端在跑：<code>pgrep -f 'tower'</code>，或重启服务后再试</li>
+  <li>token 可能已被吊销，回「导出」页重新生成分享地址</li>
+</ul>
+
+<h2 id="update-fail">订阅更新失败</h2>
+
+<ul>
+  <li>先在设备上用 <code>wget</code> 直接拉一次订阅链接，排除网络和 DNS 问题</li>
+  <li>有些机场按 User-Agent 返回不同格式，试着换一个 UA 再更新</li>
+  <li>更新失败不会清空已有节点，旧数据还在</li>
+</ul>
+
+<h2 id="arch">我的设备架构能用吗</h2>
+
+<p>看 Release 里有没有对应架构的包。SDK 25.12 不含 <code>mips_4kec</code>；只做了编译验证的架构，实际运行效果需要你自己确认。真机验证目前只有 x86_64 + 25.12。</p>
+
+<h2 id="reset">想从零开始</h2>
+
+<pre><code>/etc/init.d/tower stop
+rm -rf /etc/tower
+/etc/init.d/tower start</code></pre>
+
+<p>这会清掉订阅、节点和规则方案，<code>/etc/config/tower</code> 里的端口设置保留。</p>

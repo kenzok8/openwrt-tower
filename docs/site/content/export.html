@@ -1,0 +1,56 @@
+<h1>导出配置</h1>
+
+<p>「导出」页分三步：选目标客户端 → 选节点 → 生成。生成的配置可以先预览，再复制或下载。</p>
+
+<h2 id="targets">可选目标</h2>
+
+<p><strong>桌面与移动客户端</strong></p>
+
+<p>Clash Verge、Stash、Clash、ClashMac、FlClash、Mihomo Party、Clash Mi、Karing、sing-box MT、Hiddify、Surge、Surge Mac、Shadowrocket。</p>
+
+<p><strong>OpenWrt 插件</strong></p>
+
+<table>
+  <tr><th>插件</th><th>生成内容</th></tr>
+  <tr><td>OpenClash、Nikki、Clashoo · Mihomo</td><td>Mihomo YAML</td></tr>
+  <tr><td>Clashoo · sing-box、Momo</td><td>sing-box JSON</td></tr>
+  <tr><td>daede · dae 配置、Honk · dae 配置</td><td>完整 dae 配置（Kenzo 模板）</td></tr>
+</table>
+
+<p>选中目标后，顶部会显示该目标的协议支持范围；不支持的协议在协议行里是禁用状态，不会被悄悄跳过。</p>
+
+<h2 id="nodes">选择节点</h2>
+
+<p>「全部协议」一行是整组开关，下面按协议分组，再往下是逐个节点勾选。搜索框按名称过滤。底部实时显示「共 / 当前筛选 / 已选」三个计数。</p>
+
+<h2 id="generate">生成与预览</h2>
+
+<ul>
+  <li>选好规则方案，需要时勾选「优先使用原生规则集」</li>
+  <li>点「生成」后先看预览和兼容提示，确认无误再复制或下载</li>
+  <li>dae / Honk 目标会先生成完整配置模板，再按你的节点填充</li>
+</ul>
+
+<h2 id="local-subscription">给本机插件喂订阅</h2>
+
+<p>Tower 的后端只在 <code>127.0.0.1</code> 上开一个小服务（默认端口 <code>7443</code>），用来给同机插件提供订阅地址：</p>
+
+<table>
+  <tr><th>路径</th><th>用途</th></tr>
+  <tr><td><code>http://127.0.0.1:7443/share/v1/&lt;token&gt;</code></td><td>按当前选择的节点和规则生成的配置快照，token 由 Tower 生成</td></tr>
+  <tr><td><code>http://127.0.0.1:7443/daesub/v1/&lt;tag&gt;</code></td><td>给只认 http(s) 订阅地址的 dae 系插件用的节点列表</td></tr>
+</table>
+
+<p>地址里的 token 和 tag 可以随时吊销重发，吊销后旧地址立刻失效。这个服务拒绝非回环地址，外网访问不到。</p>
+
+<h2 id="boundaries">导出边界</h2>
+
+<table>
+  <tr><th>目标</th><th>导出内容</th><th>需要注意</th></tr>
+  <tr><td>OpenClash、Nikki、Clashoo（Mihomo）</td><td>Mihomo YAML</td><td>导入后仍要看目标插件自己的校验和日志</td></tr>
+  <tr><td>Clashoo（sing-box）、Momo</td><td>sing-box JSON，默认分流</td><td>Tower 的规则方案还不能等价转成 sing-box 分流；Momo 还要按运行模式调整入站</td></tr>
+  <tr><td>daede</td><td>节点订阅</td><td>规则仍由 daede 自己管理</td></tr>
+  <tr><td>Honk</td><td>完整 dae 配置</td><td>用 Kenzo 模板生成，导入前确认模板里的接口名与你的设备一致</td></tr>
+</table>
+
+<blockquote>生成成功不等于能用。代理是否通取决于节点本身和线路，Tower 只保证「配置格式和所选目标对得上」。</blockquote>

@@ -1,0 +1,43 @@
+<h1>Tower</h1>
+
+<p>Tower 是跑在路由器上的配置工作台：整理订阅和自有节点，挑一套分流规则，生成目标客户端能直接导入的配置。现阶段适配 OpenClash、Nikki、Clashoo、Momo 等插件，也支持 Surge、Shadowrocket 这类客户端。</p>
+
+<blockquote>这是「酱紫表 Tower」的 OpenWrt 适配版，由 kenzok8 维护，不是原版官方项目。订阅凭据和节点密码只保存在你的路由器上，不会送往在线转换服务。</blockquote>
+
+<div class="cards">
+  <a class="card" href="install.html"><strong>安装与升级 →</strong><span>一键脚本、软件源、SDK 编译</span></a>
+  <a class="card" href="subscriptions.html"><strong>订阅与节点 →</strong><span>导入、更新、按协议筛选</span></a>
+  <a class="card" href="export.html"><strong>导出配置 →</strong><span>选客户端、选节点、预览下载</span></a>
+</div>
+
+<h2 id="what-it-does">它能做什么</h2>
+
+<ul>
+  <li><strong>收拢节点</strong>：多个机场订阅加自有节点放在一起，看得到流量和到期时间，可以随时刷新。</li>
+  <li><strong>一套规则复用</strong>：内置 ACL4SSR、Self-Configuration、kenzok8 方案，也能导入自己的 Clash YAML、subconverter <code>.ini</code> 或 Surge 配置。</li>
+  <li><strong>按目标生成</strong>：同一批节点可以导出成 Mihomo YAML、sing-box JSON、Surge / Shadowrocket 配置，或纯节点链接。</li>
+  <li><strong>给本机插件喂订阅</strong>：Tower 只在 <code>127.0.0.1</code> 上提供订阅地址，同机的插件可以直接拉。</li>
+</ul>
+
+<h2 id="what-it-does-not">它不做什么</h2>
+
+<ul>
+  <li>不接管流量。Tower 只生成配置，真正跑代理的是 OpenClash、Nikki、Clashoo、Momo、daede、Honk 这些插件。</li>
+  <li>不替代目标插件的校验。生成后仍要在插件里看它自己有没有报错。</li>
+  <li>不导入节点到规则方案。导入规则只带策略组和规则，节点始终来自你的订阅与自有节点。</li>
+  <li>不做在线转换。所有解析和生成都在路由器本地完成。</li>
+</ul>
+
+<h2 id="requirements">环境要求</h2>
+
+<table>
+  <tr><th>项目</th><th>要求</th></tr>
+  <tr><td>固件</td><td>OpenWrt / ImmortalWrt，24.10（opkg）或 25.12（apk）</td></tr>
+  <tr><td>包</td><td><code>tower</code>（后端）+ <code>luci-app-tower</code>（界面），两个都要装</td></tr>
+  <tr><td>架构</td><td>SDK 24.10 覆盖 23 个架构；SDK 25.12 覆盖 22 个（不含 <code>mips_4kec</code>）</td></tr>
+  <tr><td>实机验证</td><td>目前只有 x86_64 + 25.12 通过真机验证，其他架构属于编译验证</td></tr>
+</table>
+
+<h2 id="where-to-start">从哪里开始</h2>
+
+<p>已经装好 Tower 的，直接看<a href="subscriptions.html">订阅与节点</a>；还没装的，先看<a href="install.html">安装与升级</a>。遇到问题去<a href="troubleshooting.html">常见问题</a>，想自己编译去<a href="development.html">开发与命令</a>。</p>
