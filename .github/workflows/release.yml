@@ -160,7 +160,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Download all package artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: tower-*
           path: artifacts
@@ -340,7 +340,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download package artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: tower-*
           path: artifacts
