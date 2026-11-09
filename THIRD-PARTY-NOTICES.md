@@ -16,7 +16,7 @@ Tower 源码以 MIT 许可证发布。规则数据由各自上游项目维护，
 
 ## kenzok8 内置方案
 
-`tower/files/rules/Kenzok8.yaml` 源自个人使用的 Mihomo 分流思路，已去除订阅地址和节点凭据。它引用 [MetaCubeX](https://github.com/MetaCubeX/meta-rules-dat) 和 [kenzok78/ruleset](https://github.com/kenzok78/ruleset) 的公开规则；规则正文不随包分发。再次分发缓存规则前，请核对各上游许可证。
+`tower/files/rules/Kenzok8.yaml` 源自个人使用的 Mihomo 分流思路，已去除订阅地址和节点凭据。它引用 [MetaCubeX](https://github.com/MetaCubeX/meta-rules-dat) 和 [kenzok8/ruleset](https://github.com/kenzok8/ruleset) 的公开规则；规则正文不随包分发。再次分发缓存规则前，请核对各上游许可证。
 
 ### Group icons
 
