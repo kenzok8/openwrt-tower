@@ -60,3 +60,5 @@
 <p>VLESS 的 <code>encryption</code>（Xray 的抗量子加密层，跟 REALITY 是两回事）只有 mihomo 内核的目标能带：OpenClash、Nikki、Clashoo（Mihomo）、Clash Verge、Mihomo Party、FlClash、Clash Mi、ClashMac、Karing 会写进节点；Stash、Clash 不写，它们会把未知字段当错误。sing-box 没有对应字段，导 sing-box 目标时这部分只能缺。</p>
 
 <p>REALITY 的 <code>spx</code>（spiderX）只有 <code>vless://</code> 链接能带，Clash YAML 的 <code>reality-opts</code> 和 sing-box 都没有位置放它。</p>
+
+<p>REALITY 的 <code>support-x25519mlkem768</code> 是握手层的抗量子密钥交换开关，跟 <code>encryption</code> 是两回事：服务端要求、客户端没带，握手就直接失败。Tower 只对 mihomo 内核的目标写进 <code>reality-opts</code>，未设置和显式关闭是两种状态；sing-box 没有对应字段。</p>
