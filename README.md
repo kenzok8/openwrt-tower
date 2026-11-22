@@ -2,7 +2,9 @@
 
 <h1 align="center">Tower</h1>
 
-<p align="center"><strong>OpenWrt 配置工作台：整理订阅与节点，选择分流规则，导出给 OpenClash / Nikki / Clashoo / Momo/ dae / honk。</strong></p>
+<p align="center"><strong>OpenWrt 配置工作台：整理订阅与节点，选择分流规则，导出给 OpenClash / Nikki / Clashoo / Momo / dae / Honk。</strong></p>
+
+<p align="center"><a href="README_en.md">English</a> · 中文</p>
 
 <div align="center">
   <a href="https://github.com/kenzok8/openwrt-tower/releases"><img alt="Release" src="https://img.shields.io/github/v/release/kenzok8/openwrt-tower?style=flat-square&label=release"></a>
@@ -12,10 +14,9 @@
   <a href="https://github.com/kenzok8/openwrt-tower/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/kenzok8/openwrt-tower?style=flat-square"></a>
 </div>
 
-
 ---
 
-> Tower 是路由器上的配置工作台，它负责整理订阅和自有节点、选择分流规则、生成客户端可导入的配置；现阶段做适配 OpenClash、Nikki、Clashoo、Momo、dae、 honk等插件。
+> Tower 是路由器上的配置工作台，它负责整理订阅和自有节点、选择分流规则、生成客户端可导入的配置；现阶段做适配 OpenClash、Nikki、Clashoo、Momo、dae、Honk 等插件。
 >
 > 本项目是「酱紫表 Tower」的 OpenWrt 适配版，由 kenzok8 维护，并非原版官方项目。订阅凭据与节点密码只保存在你的路由器上，不会送往在线转换服务。
 >
@@ -54,7 +55,7 @@
 - 导入规则方案不会导入节点；网络可用时可手动刷新远程规则缓存
 
 **导出**
-- 生成 Mihomo YAML、Surge / Shadowrocket 配置、sing-box JSON，以及单独的节点链接，可预览、复制或下载
+- 生成 Mihomo YAML、Surge / Shadowrocket 配置、sing-box JSON、dae / Honk 配置（Kenzo 模板），以及单独的节点链接，可预览、复制或下载
 - 为同一路由器上的插件提供本机订阅地址（仅监听 `127.0.0.1`）
 
 ### 导出边界
@@ -63,7 +64,9 @@
 |---|---|---|
 | OpenClash、Nikki、Clashoo（Mihomo） | Mihomo YAML | 导入后仍需目标插件校验配置与日志 |
 | Clashoo（sing-box）、Momo | sing-box JSON，默认分流 | Tower 规则方案尚不能等价转成 sing-box 分流；Momo 还需按运行模式调整入站 |
-| daede | 节点订阅 | 规则仍由 daede 自己管理 |
+| daede、Honk | 完整 dae 配置（Kenzo 模板） | 导入前确认模板里的接口名与你的设备一致；Honk 不支持 SSR |
+
+只认 http(s) 订阅地址的 dae 系插件，也可以用本机节点订阅 `http://127.0.0.1:7443/daesub/v1/<tag>`。
 
 ---
 
@@ -87,7 +90,14 @@ wget -O - https://raw.githubusercontent.com/kenzok8/openwrt-tower/main/scripts/i
 
 已接入该软件源时，也可以运行 `apk update && apk add tower luci-app-tower`，或在 24.10 上运行 `opkg update && opkg install tower luci-app-tower`。
 
-### SDK 自行编译
+### Release 手动安装
+
+从 [Releases](https://github.com/kenzok8/openwrt-tower/releases) 下载与你的系统版本、架构匹配的 `tower` 与 `luci-app-tower` 两个包。24.10 使用 IPK，25.12 使用 APK；Release APK 未签名，手动安装需使用 `apk add --allow-untrusted`。已有可信软件源的设备，优先通过软件源安装。
+
+安装或升级前请备份 `/etc/config/tower` 和 `/etc/tower/`。
+
+<details>
+<summary><b>SDK 自行编译</b></summary>
 
 作为 `src-link` feed 接入已装好 Go 编译环境的 OpenWrt / ImmortalWrt SDK 或 Buildroot：
 
@@ -99,11 +109,27 @@ make package/tower/compile V=s
 make package/luci-app-tower/compile V=s
 ```
 
-安装或升级前请备份 `/etc/config/tower` 和 `/etc/tower/`。
+</details>
 
-### Release 手动安装
+### 卸载
 
-从 [Releases](https://github.com/kenzok8/openwrt-tower/releases) 下载与你的系统版本、架构匹配的 `tower` 与 `luci-app-tower` 两个包。24.10 使用 IPK，25.12 使用 APK；Release APK 未签名，手动安装需使用 `apk add --allow-untrusted`。已有可信软件源的设备，优先通过软件源安装。
+```sh
+apk del luci-app-tower tower        # 25.12
+opkg remove luci-app-tower tower    # 24.10
+```
+
+卸载不会删除 `/etc/tower/`，确认不再使用后手动删除。
+
+---
+
+## 依赖
+
+| 包名 | 说明 |
+| :--- | :--- |
+| `ca-bundle` | CA 证书包，拉取订阅与远程规则时做 HTTPS 证书校验 |
+| `tower` | Go 后端；`luci-app-tower` 的 rpcd 后端通过子进程调用 `/usr/bin/tower` |
+
+LuCI 运行基础（`luci-base` 等）由 `luci.mk` 自动带入，不在包 Makefile 里单列。完整依赖见 `tower/Makefile` 与 `luci-app-tower/Makefile`。
 
 ---
 

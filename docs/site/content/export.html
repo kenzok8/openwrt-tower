@@ -6,7 +6,7 @@
 
 <p><strong>桌面与移动客户端</strong></p>
 
-<p>Clash Verge、Stash、Clash、ClashMac、FlClash、Mihomo Party、Clash Mi、Karing、sing-box MT、Hiddify、Surge、Surge Mac、Shadowrocket。</p>
+<p>Clash Verge、Stash、Clash、ClashMac、FlClash、Clash Party、Clash Mi、Karing、sing-box MT、Hiddify、Surge、Surge Mac、Shadowrocket。</p>
 
 <p><strong>OpenWrt 插件</strong></p>
 
@@ -49,15 +49,14 @@
   <tr><th>目标</th><th>导出内容</th><th>需要注意</th></tr>
   <tr><td>OpenClash、Nikki、Clashoo（Mihomo）</td><td>Mihomo YAML</td><td>导入后仍要看目标插件自己的校验和日志</td></tr>
   <tr><td>Clashoo（sing-box）、Momo</td><td>sing-box JSON，默认分流</td><td>Tower 的规则方案还不能等价转成 sing-box 分流；Momo 还要按运行模式调整入站</td></tr>
-  <tr><td>daede</td><td>节点订阅</td><td>规则仍由 daede 自己管理</td></tr>
-  <tr><td>Honk</td><td>完整 dae 配置</td><td>用 Kenzo 模板生成，导入前确认模板里的接口名与你的设备一致</td></tr>
+  <tr><td>daede、Honk</td><td>完整 dae 配置（Kenzo 模板）</td><td>导入前确认模板里的接口名与你的设备一致；Honk 不支持 SSR</td></tr>
 </table>
 
 <blockquote>生成成功不等于能用。代理是否通取决于节点本身和线路，Tower 只保证「配置格式和所选目标对得上」。</blockquote>
 
 <h2 id="vless-pq">VLESS 抗量子参数</h2>
 
-<p>VLESS 的 <code>encryption</code>（Xray 的抗量子加密层，跟 REALITY 是两回事）只有 mihomo 内核的目标能带：OpenClash、Nikki、Clashoo（Mihomo）、Clash Verge、Mihomo Party、FlClash、Clash Mi、ClashMac、Karing 会写进节点；Stash、Clash 不写，它们会把未知字段当错误。sing-box 没有对应字段，导 sing-box 目标时这部分只能缺。</p>
+<p>VLESS 的 <code>encryption</code>（Xray 的抗量子加密层，跟 REALITY 是两回事）只有 mihomo 内核的目标能带：OpenClash、Nikki、Clashoo（Mihomo）、Clash Verge、Clash Party、FlClash、Clash Mi、ClashMac、Karing 会写进节点；Stash、Clash 不写，它们会把未知字段当错误。sing-box 没有对应字段，导 sing-box 目标时这部分只能缺。</p>
 
 <p>REALITY 的 <code>spx</code>（spiderX）只有 <code>vless://</code> 链接能带，Clash YAML 的 <code>reality-opts</code> 和 sing-box 都没有位置放它。</p>
 
